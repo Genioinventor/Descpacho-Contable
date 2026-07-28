@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Estadísticas | Contabilidad Alvarez Nuñez</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="app-header">
+        <img src="../logo.png" alt="logo" class="sidebar-logo">
+        <div>
+          <div class="app-title">Contabilidad Alvarez Nuñez</div>
+          <div class="app-sub">Panel de negocio</div>
+        </div>
+      </div>
+      <nav class="sb-nav">
+        <a class="nav-btn" href="../index.html"><span class="ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M7 2h6l5 5v11a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span>Generar tickets</span></a>
+        <a class="nav-btn" href="../index.html"><span class="ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M17 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="9" cy="7" r="4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span>Gestionar clientes</span></a>
+        <a class="nav-btn active" href="./index.html"><span class="ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 19h16M7 15V9m5 10V5m5 10v-4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span>Estadísticas</span></a>
+      </nav>
+      <div class="db-info">
+        <div id="dbStatus">Base de datos: Desconocida</div>
+        <div id="sidebarClientCount">Clientes: 0</div>
+      </div>
+    </aside>
+
+    <main class="main">
+      <div class="page-head">
+        <h2>Estadísticas</h2>
+        <p>Resumen de tickets y clientes guardados.</p>
+      </div>
+
+      <div class="stats-grid">
+        <section class="stat-card highlight">
+          <div class="stat-title">Clientes registrados</div>
+          <div class="stat-value" id="clientCount">0</div>
+          <p class="stat-sub">Clientes guardados en el sistema.</p>
+        </section>
+
+        <section class="stat-card">
+          <div class="stat-title">Tickets generados</div>
+          <div class="stat-value" id="ticketCount">0</div>
+          <p class="stat-sub">Total de tickets creados.</p>
+        </section>
+
+        <section class="stat-card">
+          <div class="stat-title">Total facturado</div>
+          <div class="stat-value" id="totalRevenue">$0.00</div>
+          <p class="stat-sub">Suma de los importes de tickets.</p>
+        </section>
+
+        <section class="stat-card">
+          <div class="stat-title">Ticket promedio</div>
+          <div class="stat-value" id="averageTicket">$0.00</div>
+          <p class="stat-sub">Promedio de venta por ticket.</p>
+        </section>
+
+        <section class="list-card">
+          <div class="list-header">Clientes recientes</div>
+          <div id="clientList" class="list-body">
+            <p class="empty-state">No hay clientes registrados aún.</p>
+          </div>
+        </section>
+
+        <section class="list-card">
+          <div class="list-header">Últimos tickets</div>
+          <div id="ticketList" class="list-body">
+            <p class="empty-state">No hay tickets generados aún.</p>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+  <script src="script.js"></script>
+</body>
+</html>

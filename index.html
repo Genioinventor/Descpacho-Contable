@@ -48,10 +48,10 @@
   .sb-brand h1{font-size:15.5px; margin:0; font-weight:800; letter-spacing:-.01em;}
   .sb-brand span{display:block; font-size:10.5px; color:var(--text-dim); font-weight:600; letter-spacing:.06em; text-transform:uppercase;}
   .sb-nav{display:flex; flex-direction:column; gap:4px; margin-top:4px;}
-  .sb-nav button{display:flex; align-items:center; gap:11px; background:transparent; border:1px solid transparent; color:var(--text-dim); font-family:inherit; font-size:13.5px; font-weight:700; padding:11px 12px; border-radius:11px; cursor:pointer; text-align:left; transition:all .15s;}
-  .sb-nav button .ic{font-size:16px; width:20px; text-align:center;}
-  .sb-nav button:hover{background:var(--card-2); color:var(--text);}
-  .sb-nav button.active{background:linear-gradient(135deg,rgba(124,92,255,.18),rgba(62,207,224,.10)); border-color:rgba(124,92,255,.35); color:#fff;}
+  .sb-nav button, .sb-nav a{display:flex; align-items:center; gap:11px; background:transparent; border:1px solid transparent; color:var(--text-dim); font-family:inherit; font-size:13.5px; font-weight:700; padding:11px 12px; border-radius:11px; cursor:pointer; text-align:left; text-decoration:none; transition:all .15s;}
+  .sb-nav button .ic, .sb-nav a .ic{font-size:16px; width:20px; text-align:center;}
+  .sb-nav button:hover, .sb-nav a:hover{background:var(--card-2); color:var(--text);}
+  .sb-nav button.active, .sb-nav a.active{background:linear-gradient(135deg,rgba(124,92,255,.18),rgba(62,207,224,.10)); border-color:rgba(124,92,255,.35); color:#fff;}
   .sb-foot{margin-top:auto; display:flex; flex-direction:column; gap:8px;}
   select.mini{width:100%; background:var(--card-2); color:var(--text); border:1px solid var(--border); border-radius:10px; padding:9px 10px; font-family:inherit; font-size:12.5px; font-weight:600; cursor:pointer;}
   select.mini:focus{outline:none; border-color:var(--violet);}
@@ -283,6 +283,7 @@
     <nav class="sb-nav" style="display:flex;flex-direction:column;gap:8px;margin-top:8px;">
       <button class="nav-btn active" data-view="generate"><span class="ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M7 2h6l5 5v11a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span>Generar tickets</span></button>
       <button class="nav-btn" data-view="clients"><span class="ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M17 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="9" cy="7" r="4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span>Gestionar clientes</span></button>
+      <a class="nav-btn" href="./stats/index.html"><span class="ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 19h16M7 15V9m5 10V5m5 10v-4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span>Estadísticas</span></a>
     </nav>
     <div class="db-info">
       <div id="dbStatus">Base de datos: Desconocida</div>
@@ -333,7 +334,6 @@
                   <option data-i18n="payEfectivo">Efectivo</option>
                   <option data-i18n="payCard">Tarjeta</option>
                 </select>
-                <div id="dbStatus" style="font-size:12px;color:var(--text-dim);margin-top:8px;">Base de datos: Desconocida</div>
               </div>
             </div>
           </div>
@@ -526,7 +526,7 @@
                   <span data-i18n="lblFolioShort">Folio</span> <span id="sheetFolioSmall">000001</span>
                 </div>
               </div>
-              <div class="sheet-disclaimer" data-i18n="disclaimer">Documento generado con fines informativos. No constituye un comprobante fiscal digital (CFDI). El código QR es decorativo y no verifica información ante ninguna autoridad.</div>
+              <div class="sheet-disclaimer" id="sheetDisclaimer" style="display:none;"></div>
             </div>
 
             <div class="preview-actions">
@@ -613,6 +613,52 @@
       <div class="footer-space"></div>
     </section>
 
+    <section class="view" id="view-stats">
+      <div class="page-head">
+        <h2>Estadísticas</h2>
+        <p>Resumen de tickets generados y rendimiento.</p>
+      </div>
+      <div class="layout">
+        <div>
+          <div class="card">
+            <div class="section-title"><span class="num">1</span><span>Resumen general</span></div>
+            <div class="row3" style="gap:14px;">
+              <div class="field" style="background:var(--card-2); border:1px solid var(--border); padding:18px; border-radius:16px;">
+                <label style="font-size:12px; color:var(--text-dim);">Tickets generados</label>
+                <div id="statTotalTickets" style="font-size:28px; font-weight:800; margin-top:8px;">0</div>
+              </div>
+              <div class="field" style="background:var(--card-2); border:1px solid var(--border); padding:18px; border-radius:16px;">
+                <label style="font-size:12px; color:var(--text-dim);">Total facturado</label>
+                <div id="statRevenue" style="font-size:28px; font-weight:800; margin-top:8px;">$0.00</div>
+              </div>
+              <div class="field" style="background:var(--card-2); border:1px solid var(--border); padding:18px; border-radius:16px;">
+                <label style="font-size:12px; color:var(--text-dim);">Ticket promedio</label>
+                <div id="statAverage" style="font-size:28px; font-weight:800; margin-top:8px;">$0.00</div>
+              </div>
+            </div>
+          </div>
+          <div class="card" style="margin-top:18px;">
+            <div class="section-title"><span class="num">2</span><span>Detalle de ingresos</span></div>
+            <div class="field"><label style="font-size:12px; color:var(--text-dim);">Total IVA</label><div id="statTax" style="font-size:16px; font-weight:700; margin-top:8px;">$0.00</div></div>
+            <div class="field"><label style="font-size:12px; color:var(--text-dim);">Total descuentos</label><div id="statDiscounts" style="font-size:16px; font-weight:700; margin-top:8px;">$0.00</div></div>
+            <div class="field"><label style="font-size:12px; color:var(--text-dim);">Último ticket</label><div id="statLastTicket" style="font-size:16px; font-weight:700; margin-top:8px;">-</div></div>
+          </div>
+        </div>
+        <div>
+          <div class="card">
+            <div class="section-title"><span class="num">3</span><span>Historial y gestión</span></div>
+            <div class="field">
+              <input type="text" id="ticketSearch" placeholder="Buscar ticket por cliente o folio…">
+            </div>
+            <div class="history-list" id="ticketManagerList">
+              <p class="empty-hint">No hay tickets generados aún.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="footer-space"></div>
+    </section>
+
   </main>
 </div>
 
@@ -634,9 +680,10 @@ const I18N = {
       secProducts:"Productos", thProduct:"Producto", thQty:"Cant.", thPrice:"Precio", thSub:"Subtotal", btnAddProduct:"+ Añadir producto", btnCopyTotal:"Copiar total",
       secDeposit:"Anticipo", lblDeposit:"Anticipo / Depósito", secPreview:"Vista previa del documento", lblSubtotal:"Subtotal", lblTotal:"Total general",
       lblDepositApplied:"Anticipo", lblBalance:"Saldo pendiente", lblSign:"Firma", lblFolioShort:"Folio", lblWords:"Importe con letra",
-      disclaimer:"Documento generado con fines informativos. No constituye un comprobante fiscal digital (CFDI). El código QR es decorativo y no verifica información ante ninguna autoridad.",
+      disclaimer:"",
       btnSaveTicket:"Guardar", btnWa:"WhatsApp", btnPdf:"Descargar PDF", btnPng:"Descargar PNG",
       secHistory:"Historial de tickets", emptyHist:"Aún no has generado ningún ticket.",
+      statRevenue:"Total facturado", statAverage:"Ticket promedio", statTax:"Total IVA", statDiscounts:"Total descuentos", statLastTicket:"Último ticket", statSearchTickets:"Buscar ticket por cliente o folio…",
       lblNewClient:"Nuevo cliente", lblEditClient:"Editar cliente", lblPhone:"Teléfono", lblEmail:"Correo", lblAddress:"Dirección",
       btnSave:"Guardar cliente", btnCancel:"Cancelar edición", secClientList:"Clientes guardados", lblSearch:"Buscar cliente…", emptyClients:"Aún no tienes clientes guardados.",
       newClientOpt:"+ Nuevo cliente (sin guardar)", discount:"Descuento", copied:"Total copiado al portapapeles", saved:"Ticket guardado",
@@ -837,6 +884,10 @@ let ticketHistory = [];
 let meta = { nextFolio: 1 };
 let editingClientId = null;
 let deleteArmedId = null;
+function generateTicketId(){
+  if(window.crypto && window.crypto.randomUUID) return window.crypto.randomUUID();
+  return 't-'+Date.now()+'-'+Math.floor(Math.random()*999999);
+}
 
 async function loadAllData(){
   try{
@@ -846,6 +897,7 @@ async function loadAllData(){
   try{
     const t = await window.storage.get('cotizador-tickets', false);
     ticketHistory = t ? JSON.parse(t.value) : [];
+    ticketHistory = ticketHistory.map(ticket => ({ ...ticket, id: ticket.id || generateTicketId() }));
   }catch(e){ ticketHistory = []; }
   try{
     const m = await window.storage.get('cotizador-meta', false);
@@ -997,10 +1049,6 @@ function computeTotals(){
 /* ============================================================
    QR (decorative only — encodes plain text, verifies nothing)
 ============================================================ */
-// debounce helper for real-time preview QR regeneration
-function debounce(fn, wait){ let timer; return function(...args){ clearTimeout(timer); timer = setTimeout(()=> fn.apply(this,args), wait); }; }
-let renderQrDebounced = null;
-
 function renderQr(){
   const box = document.getElementById('qrBox');
   box.innerHTML = '';
@@ -1025,14 +1073,16 @@ function renderQr(){
     t.ivaOn ? `IVA (${t.ivaPct}%): ${fmt(t.iva)}` : null,
     t.discount>0 ? `Descuento: ${fmt(t.discount)}` : null,
     `Total: ${fmt(t.total)}`,
-    importeLetra ? `Importe en letras: ${importeLetra}` : null,
-    `Documento no fiscal - información en texto`
+    importeLetra ? `Importe en letras: ${importeLetra}` : null
   ].filter(Boolean);
   const text = parts.join(' | ');
   try{
     if(typeof QRCode !== 'undefined'){
       // animate QR when regenerating and make it slightly larger in preview
       const size = 88;
+      box.style.display = 'flex';
+      box.style.minWidth = size + 'px';
+      box.style.minHeight = size + 'px';
       box.classList.remove('anim');
       box.innerHTML = '';
       void box.offsetWidth;
@@ -1046,9 +1096,6 @@ function renderQr(){
     box.textContent = 'QR';
   }
 }
-
-// create debounced QR renderer so preview updates smoothly
-renderQrDebounced = debounce(renderQr, 120);
 
 /* ============================================================
    Sheet (full-page invoice) + summary rendering
@@ -1137,7 +1184,7 @@ function updateSheet(){
   void sheet.offsetWidth;
   sheet.classList.add('anim');
   setTimeout(()=> sheet.classList.remove('anim'), 380);
-  if(renderQrDebounced){ renderQrDebounced(); } else { renderQr(); }
+  renderQr();
 }
 
 function showToast(msg, type=''){
@@ -1158,19 +1205,29 @@ async function saveTicketRecord(){
   }
   const t = computeTotals();
   const folio = meta.nextFolio;
-  ticketHistory.unshift({
+  const createdAt = new Date().toISOString();
+  const ticket = {
+    id: generateTicketId(),
     folio,
     brand: document.getElementById('brandName').value || (currentLang==='es'?'Sin marca':'No brand'),
     client: document.getElementById('clientName').value,
     rfc: document.getElementById('clientRfc').value,
     total: t.total,
-    date: new Date().toLocaleString(),
-    currencySymbol: currentCurrency.symbol
-  });
+    date: createdAt,
+    currencySymbol: currentCurrency.symbol,
+    iva: t.iva,
+    discount: t.discount,
+    items: items.map(it=>({ name: it.name, qty: it.qty, price: it.price })),
+    createdAt
+  };
+  ticketHistory.unshift(ticket);
   meta.nextFolio = folio + 1;
   await persistTickets();
   await persistMeta();
+  if(firestoreConnected){ await saveTicketToFirestore(ticket); }
   renderHistory();
+  renderTicketManager();
+  updateStats();
   updateSheet();
   showToast(I18N[currentLang].saved,'success');
   return folio;
@@ -1183,15 +1240,19 @@ function renderHistory(){
     return;
   }
   list.innerHTML = ticketHistory.map(h=>`
-    <div class="history-item">
+    <div class="history-item" data-id="${h.id}">
       <div>
         <div class="hi-folio">${I18N[currentLang].lblFolioShort.toUpperCase()} ${pad6(h.folio)}</div>
         <div class="hi-main">${escapeHtml(h.brand)}${h.client? ' · '+escapeHtml(h.client):''}</div>
-        <div class="hi-sub">${h.date}</div>
+        <div class="hi-sub">${new Date(h.date).toLocaleString()}</div>
       </div>
-      <div class="hi-total">${h.currencySymbol} ${h.total.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}</div>
+      <div style="display:flex; flex-direction:column; gap:8px; align-items:flex-end;">
+        <div class="hi-total">${h.currencySymbol} ${h.total.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}</div>
+        <button class="btn btn-danger btn-sm ticket-delete" data-id="${h.id}">Eliminar</button>
+      </div>
     </div>
   `).join('');
+  list.querySelectorAll('.ticket-delete').forEach(btn=> btn.addEventListener('click', ()=> handleDeleteTicket(btn.dataset.id)));
 }
 
 /* ============================================================
@@ -1211,6 +1272,69 @@ function updateDbStatus(){
   if(!el) return;
   el.textContent = firestoreConnected ? `Base de datos: Conectada — ${clients.length} clientes` : 'Base de datos: Offline (local)';
   updateClientCount();
+}
+
+async function fetchFirestoreTickets(){
+  if(!firestoreDb) return;
+  try{
+    const snap = await firestoreDb.collection('tickets').orderBy('createdAt','desc').get();
+    snap.forEach(doc=>{
+      const d = doc.data();
+      const exists = ticketHistory.some(t=> t.fsId === doc.id || (!t.fsId && t.folio === d.folio && t.date === d.date && t.total === d.total));
+      if(!exists){
+        ticketHistory.push({
+          id: generateTicketId(),
+          fsId: doc.id,
+          folio: d.folio,
+          brand: d.brand,
+          client: d.client,
+          rfc: d.rfc,
+          total: d.total,
+          date: d.date,
+          currencySymbol: d.currencySymbol,
+          iva: d.iva,
+          discount: d.discount,
+          items: d.items || [],
+          createdAt: d.createdAt ? d.createdAt.toDate().toISOString() : d.createdAt
+        });
+      }
+    });
+    renderHistory(); renderTicketManager(); updateStats();
+    await persistTickets();
+  }catch(e){ console.warn('fetchFirestoreTickets', e); }
+}
+
+async function saveTicketToFirestore(localTicket){
+  if(!firestoreDb || !localTicket) return null;
+  try{
+    const payload = {
+      folio: localTicket.folio,
+      brand: localTicket.brand,
+      client: localTicket.client,
+      rfc: localTicket.rfc,
+      total: localTicket.total,
+      date: localTicket.date,
+      currencySymbol: localTicket.currencySymbol,
+      iva: localTicket.iva,
+      discount: localTicket.discount,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    };
+    if(localTicket.fsId){
+      await firestoreDb.collection('tickets').doc(localTicket.fsId).set(payload);
+      return localTicket.fsId;
+    } else {
+      const ref = await firestoreDb.collection('tickets').add(payload);
+      localTicket.fsId = ref.id;
+      await persistTickets();
+      return ref.id;
+    }
+  }catch(e){ console.warn('saveTicketToFirestore', e); showToast('Error Firestore','error'); return null; }
+}
+
+async function deleteTicketFromFirestore(fsId){
+  if(!firestoreDb || !fsId) return;
+  try{ await firestoreDb.collection('tickets').doc(fsId).delete(); }
+  catch(e){ console.warn('deleteTicketFromFirestore', e); }
 }
 document.getElementById('clientSelect').addEventListener('change', e=>{
   const c = clients.find(cl=> String(cl.id)===e.target.value);
@@ -1329,6 +1453,7 @@ async function handleDeleteClient(id, btn){
   }
 }
 document.getElementById('clientSearch').addEventListener('input', renderClientList);
+document.getElementById('ticketSearch')?.addEventListener('input', renderTicketManager);
 
 /* ============================================================
    Export helpers (PDF / PNG)
@@ -1358,7 +1483,12 @@ function restoreBtn(btn){
     btn.classList.add('active');
     document.querySelectorAll('.view').forEach(v=> v.classList.remove('active'));
     document.getElementById('view-'+btn.dataset.view).classList.add('active');
+      if(btn.dataset.href){
+      window.location.href = btn.dataset.href;
+      return;
+    }
     if(btn.dataset.view==='clients') renderClientList();
+    if(btn.dataset.view==='stats') renderTicketManager();
   });
 });
 
@@ -1367,6 +1497,61 @@ function updateClientCount(){
   const el = document.getElementById('clientCount');
   if(!el) return;
   el.textContent = `Clientes: ${clients.length}`;
+}
+
+function updateStats(){
+  const totalTickets = ticketHistory.length;
+  const totalRevenue = ticketHistory.reduce((sum,t)=> sum + (t.total||0), 0);
+  const totalIva = ticketHistory.reduce((sum,t)=> sum + (t.iva||0), 0);
+  const totalDiscounts = ticketHistory.reduce((sum,t)=> sum + (t.discount||0), 0);
+  const average = totalTickets ? totalRevenue / totalTickets : 0;
+  const lastTicketDate = totalTickets ? new Date(ticketHistory[0].date).toLocaleString() : '-';
+  document.getElementById('statTotalTickets').textContent = totalTickets;
+  document.getElementById('statRevenue').textContent = fmt(totalRevenue);
+  document.getElementById('statAverage').textContent = fmt(average);
+  document.getElementById('statTax').textContent = fmt(totalIva);
+  document.getElementById('statDiscounts').textContent = fmt(totalDiscounts);
+  document.getElementById('statLastTicket').textContent = lastTicketDate;
+}
+
+function renderTicketManager(){
+  const list = document.getElementById('ticketManagerList');
+  const query = (document.getElementById('ticketSearch')?.value || '').toLowerCase();
+  const filtered = ticketHistory.filter(t =>
+    String(t.folio).includes(query) ||
+    (t.client || '').toLowerCase().includes(query) ||
+    (t.brand || '').toLowerCase().includes(query)
+  );
+  if(filtered.length === 0){
+    list.innerHTML = `<p class="empty-hint">No hay tickets para mostrar.</p>`;
+    return;
+  }
+  list.innerHTML = filtered.map(h=>`
+    <div class="history-item" data-id="${h.id}">
+      <div>
+        <div class="hi-folio">#${pad6(h.folio)}</div>
+        <div class="hi-main">${escapeHtml(h.brand)}${h.client? ' · '+escapeHtml(h.client):''}</div>
+        <div class="hi-sub">${new Date(h.date).toLocaleString()}</div>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:8px; align-items:flex-end;">
+        <div class="hi-total">${h.currencySymbol} ${h.total.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}</div>
+        <button class="btn btn-danger btn-sm ticket-manager-delete" data-id="${h.id}">Eliminar</button>
+      </div>
+    </div>
+  `).join('');
+  list.querySelectorAll('.ticket-manager-delete').forEach(btn=> btn.addEventListener('click', ()=> handleDeleteTicket(btn.dataset.id)));
+}
+
+async function handleDeleteTicket(ticketId){
+  const index = ticketHistory.findIndex(t=> t.id === ticketId);
+  if(index === -1) return;
+  const ticket = ticketHistory[index];
+  ticketHistory.splice(index, 1);
+  await persistTickets();
+  if(ticket.fsId) await deleteTicketFromFirestore(ticket.fsId);
+  renderHistory();
+  renderTicketManager();
+  updateStats();
 }
 
 /* ============================================================
@@ -1474,7 +1659,6 @@ document.getElementById('pdfBtn').addEventListener('click', async (e)=>{
     const pdf = new jsPDF({ unit:'pt', format:[wPt, hPt] });
     pdf.addImage(imgData, 'PNG', 0, 0, wPt, hPt);
     pdf.save(`documento-${pad6(folio)}.pdf`);
-    await saveTicketRecord();
     showToast('PDF descargado','success');
   }catch(err){
     console.error(err);
@@ -1497,7 +1681,6 @@ document.getElementById('pngBtn').addEventListener('click', async (e)=>{
     document.body.appendChild(link);
     link.click();
     link.remove();
-    await saveTicketRecord();
     showToast('PNG descargado','success');
   }catch(err){
     console.error(err);
@@ -1519,7 +1702,6 @@ document.getElementById('waBtn').addEventListener('click', async ()=>{
   text += `\n${I18N[currentLang].lblTotal}: ${fmt(t.total)}`;
   if(t.deposit>0) text += `\n${I18N[currentLang].lblBalance}: ${fmt(t.balance)}`;
   window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
-  await saveTicketRecord();
 });
 
 /* ============================================================
@@ -1550,7 +1732,7 @@ function setupMobileUX(){
 (async function init(){
   document.getElementById('docDate').value = new Date().toISOString().slice(0,10);
   await loadAllData();
-  try{ initFirebase(); await fetchFirestoreUsers(); }catch(e){ console.warn('Init Firestore', e); }
+  try{ initFirebase(); await fetchFirestoreUsers(); await fetchFirestoreTickets(); }catch(e){ console.warn('Init Firestore', e); }
   // default company name and default logo file
   document.getElementById('brandName').value = 'Contabilidad Alvarez Nuñez';
   // default document type
