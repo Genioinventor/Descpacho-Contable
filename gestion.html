@@ -1,0 +1,770 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestor de Clientes - Firestore</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1e40af;
+            --primary-light: #3b82f6;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --bg-light: #f8fafc;
+            --bg-white: #ffffff;
+            --border: #e2e8f0;
+            --text-dark: #1e293b;
+            --text-muted: #64748b;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background-color: var(--bg-light);
+            color: var(--text-dark);
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            padding: 40px 20px;
+            margin-bottom: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        header h1 {
+            font-size: 2em;
+            margin-bottom: 8px;
+            font-weight: 700;
+        }
+
+        header p {
+            font-size: 0.95em;
+            opacity: 0.95;
+        }
+
+        .controls {
+            background: var(--bg-white);
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .btn {
+            padding: 10px 16px;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.95em;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            white-space: nowrap;
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .btn-primary {
+            background-color: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background-color: var(--primary-dark);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+        }
+
+        .btn-success {
+            background-color: var(--success);
+            color: white;
+        }
+
+        .btn-success:hover:not(:disabled) {
+            background-color: #059669;
+        }
+
+        .btn-danger {
+            background-color: var(--danger);
+            color: white;
+        }
+
+        .btn-danger:hover:not(:disabled) {
+            background-color: #dc2626;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        .search-box {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-size: 0.95em;
+            transition: border-color 0.2s;
+        }
+
+        .search-box input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: var(--bg-white);
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+            text-align: center;
+        }
+
+        .stat-card .number {
+            font-size: 2em;
+            font-weight: 700;
+            color: var(--primary);
+            margin: 10px 0;
+        }
+
+        .stat-card .label {
+            font-size: 0.9em;
+            color: var(--text-muted);
+        }
+
+        .table-container {
+            background: var(--bg-white);
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+            overflow: hidden;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        thead {
+            background-color: #f1f5f9;
+            border-bottom: 2px solid var(--border);
+        }
+
+        th {
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+            color: var(--text-dark);
+            font-size: 0.9em;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        td {
+            padding: 15px;
+            border-bottom: 1px solid var(--border);
+            font-size: 0.95em;
+        }
+
+        tbody tr:hover {
+            background-color: #f8fafc;
+        }
+
+        .rfc {
+            font-family: 'Courier New', monospace;
+            font-weight: 500;
+            color: var(--primary);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-muted);
+        }
+
+        .status {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: 500;
+        }
+
+        .status.success {
+            background-color: #d1fae5;
+            color: #065f46;
+        }
+
+        .status.loading {
+            background-color: #fef3c7;
+            color: #92400e;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            animation: fadeIn 0.3s;
+        }
+
+        .modal.show {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .modal-content {
+            background-color: var(--bg-white);
+            padding: 30px;
+            border-radius: 8px;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: 0 20px 25px rgba(0, 0, 0, 0.15);
+            animation: slideUp 0.3s;
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(20px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .modal-header {
+            margin-bottom: 20px;
+        }
+
+        .modal-header h2 {
+            font-size: 1.5em;
+            margin-bottom: 5px;
+        }
+
+        .modal-header p {
+            color: var(--text-muted);
+            font-size: 0.95em;
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: var(--text-dark);
+            color: white;
+            padding: 16px 20px;
+            border-radius: 6px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            animation: slideInUp 0.3s;
+            z-index: 2000;
+            max-width: 400px;
+        }
+
+        @keyframes slideInUp {
+            from {
+                transform: translateY(20px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .toast.success {
+            background-color: var(--success);
+        }
+
+        .toast.error {
+            background-color: var(--danger);
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 40px;
+            color: var(--text-muted);
+        }
+
+        .loading.show {
+            display: block;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 30px;
+            height: 30px;
+            border: 3px solid var(--border);
+            border-top: 3px solid var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .btn-delete {
+            background-color: var(--danger);
+            color: white;
+            padding: 6px 12px;
+            font-size: 0.85em;
+        }
+
+        .btn-delete:hover:not(:disabled) {
+            background-color: #dc2626;
+        }
+
+        @media (max-width: 768px) {
+            .controls {
+                flex-direction: column;
+            }
+
+            .search-box {
+                width: 100%;
+            }
+
+            table {
+                font-size: 0.85em;
+            }
+
+            th, td {
+                padding: 10px;
+            }
+
+            header h1 {
+                font-size: 1.5em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div style="display:flex;align-items:center;gap:12px;">
+                <img src="logo.png" alt="logo" style="width:56px;height:56px;object-fit:contain;border-radius:8px;background:#fff;padding:6px;">
+                <div>
+                    <h1>Gestor de Clientes - Firestore</h1>
+                    <p>Administra tus clientes y sus datos RFC con Firebase Firestore</p>
+                </div>
+            </div>
+        </header>
+
+        <div class="stats">
+            <div class="stat-card">
+                <div class="label">Total de Clientes</div>
+                <div class="number" id="totalClientes">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="label">Estado Firestore</div>
+                <div class="status" id="statusFirebase">Conectando...</div>
+            </div>
+            <div class="stat-card">
+                <div class="label">Última Actualización</div>
+                <div class="label" id="lastUpdate">-</div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button class="btn btn-primary" id="importBtn">Importar JSON</button>
+            <button class="btn btn-success" id="exportBtn">Exportar Datos</button>
+            <button class="btn btn-danger" id="clearBtn">Limpiar Base de Datos</button>
+            <div class="search-box">
+                <input type="text" id="searchInput" placeholder="Buscar por nombre o RFC...">
+            </div>
+            <input type="file" id="fileInput" accept=".json">
+        </div>
+
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>Cargando datos...</p>
+        </div>
+
+        <div class="table-container">
+            <table id="clientesTable">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Nombre</th>
+                        <th>RFC</th>
+                        <th>Estado</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody">
+                    <tr>
+                        <td colspan="5" class="empty-state">
+                            <p>No hay datos. Importa un archivo JSON para comenzar.</p>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Modal de Importación -->
+    <div class="modal" id="importModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Importar Clientes</h2>
+                <p>Selecciona un archivo JSON para importar los clientes</p>
+            </div>
+            <div style="text-align: center; padding: 20px; background: #f8fafc; border-radius: 6px; margin-bottom: 20px;">
+                <p style="color: var(--text-muted); font-size: 0.9em;">
+                    El archivo debe tener el formato:<br>
+                    <code style="background: white; padding: 10px; border-radius: 4px; display: inline-block; margin-top: 10px;">
+                        { "clientes": [{ "nombre": "...", "rfc": "..." }] }
+                    </code>
+                </p>
+            </div>
+            <div style="display: flex; gap: 10px;">
+                <button class="btn btn-primary" style="flex: 1;" id="confirmImport">Seleccionar Archivo</button>
+                <button class="btn" style="flex: 1; background: #e2e8f0; color: var(--text-dark);" id="cancelImport">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, writeBatch, query, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        // Configuración de Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyCJa46EK5NW7dC03Uc058x4A-sa_AWnfyk",
+            authDomain: "contabilidad-an.firebaseapp.com",
+            projectId: "contabilidad-an",
+            storageBucket: "contabilidad-an.firebasestorage.app",
+            messagingSenderId: "773806099214",
+            appId: "1:773806099214:web:2e8b14c4a5e5b2cfb2a55f"
+        };
+
+        // Inicializar Firebase
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        // Variables globales
+        let clientes = [];
+        let clientesFiltrados = [];
+        let unsubscribe = null;
+
+        // Elementos del DOM
+        const tableBody = document.getElementById('tableBody');
+        const searchInput = document.getElementById('searchInput');
+        const importBtn = document.getElementById('importBtn');
+        const exportBtn = document.getElementById('exportBtn');
+        const clearBtn = document.getElementById('clearBtn');
+        const fileInput = document.getElementById('fileInput');
+        const importModal = document.getElementById('importModal');
+        const confirmImport = document.getElementById('confirmImport');
+        const cancelImport = document.getElementById('cancelImport');
+        const totalClientesEl = document.getElementById('totalClientes');
+        const statusFirebase = document.getElementById('statusFirebase');
+        const lastUpdateEl = document.getElementById('lastUpdate');
+        const loading = document.getElementById('loading');
+
+        // Mostrar toast
+        function showToast(message, type = 'success') {
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.textContent = message;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        }
+
+        // Cargar datos de Firestore
+        function cargarDatos() {
+            loading.classList.add('show');
+            const usuariosRef = collection(db, 'usuarios');
+            
+            try {
+                unsubscribe = onSnapshot(usuariosRef, (snapshot) => {
+                    clientes = [];
+                    snapshot.forEach((doc) => {
+                        clientes.push({
+                            id: doc.id,
+                            nombre: doc.data().nombre || '',
+                            rfc: doc.data().rfc || ''
+                        });
+                    });
+                    clientes.sort((a, b) => a.nombre.localeCompare(b.nombre));
+                    loading.classList.remove('show');
+                    renderizarTabla(clientes);
+                    actualizarEstadisticas();
+                    statusFirebase.textContent = 'Conectado';
+                    statusFirebase.classList.add('success');
+                });
+            } catch (error) {
+                console.error('Error cargando datos:', error);
+                showToast('Error al cargar datos de Firestore: ' + error.message, 'error');
+                loading.classList.remove('show');
+                statusFirebase.textContent = 'Error';
+                statusFirebase.classList.remove('success');
+            }
+        }
+
+        // Renderizar tabla
+        function renderizarTabla(datos) {
+            if (datos.length === 0) {
+                tableBody.innerHTML = '<tr><td colspan="5" class="empty-state"><p>No hay datos. Importa un archivo JSON para comenzar.</p></td></tr>';
+                return;
+            }
+
+            tableBody.innerHTML = datos.map((cliente, index) => `
+                <tr>
+                    <td>${index + 1}</td>
+                    <td><strong>${escapeHTML(cliente.nombre)}</strong></td>
+                    <td><span class="rfc">${escapeHTML(cliente.rfc)}</span></td>
+                    <td><span class="status success">Activo</span></td>
+                    <td><button class="btn btn-delete" onclick="window.eliminarCliente('${escapeJS(cliente.id)}')">Eliminar</button></td>
+                </tr>
+            `).join('');
+        }
+
+        // Escapar HTML
+        function escapeHTML(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Escapar para JavaScript
+        function escapeJS(text) {
+            return text.replace(/'/g, "\\'").replace(/"/g, '\\"');
+        }
+
+        // Actualizar estadísticas
+        function actualizarEstadisticas() {
+            totalClientesEl.textContent = clientes.length;
+            
+            const ahora = new Date();
+            lastUpdateEl.textContent = ahora.toLocaleTimeString('es-MX');
+        }
+
+        // Importar JSON
+        async function importarJSON(archivo) {
+            try {
+                const texto = await archivo.text();
+                let datos;
+                
+                try {
+                    datos = JSON.parse(texto);
+                } catch (e) {
+                    showToast('El archivo JSON no es válido. Verifica el formato.', 'error');
+                    return;
+                }
+
+                if (!datos.clientes || !Array.isArray(datos.clientes)) {
+                    showToast('Formato JSON inválido. Debe contener un array "clientes"', 'error');
+                    return;
+                }
+
+                loading.classList.add('show');
+                let importados = 0;
+                let errores = 0;
+
+                for (const cliente of datos.clientes) {
+                    if (!cliente.nombre || !cliente.rfc) {
+                        errores++;
+                        continue;
+                    }
+
+                    try {
+                        await addDoc(collection(db, 'usuarios'), {
+                            nombre: cliente.nombre.trim(),
+                            rfc: cliente.rfc.trim()
+                        });
+                        importados++;
+                    } catch (error) {
+                        console.error('Error agregando cliente:', error);
+                        errores++;
+                    }
+                }
+
+                loading.classList.remove('show');
+                
+                if (importados > 0) {
+                    showToast(`Se importaron ${importados} clientes exitosamente${errores > 0 ? ` (${errores} con error)` : ''}`, 'success');
+                } else {
+                    showToast(`Error: No se importó ningún cliente. (${errores} errores)`, 'error');
+                }
+                
+                importModal.classList.remove('show');
+            } catch (error) {
+                console.error('Error importando JSON:', error);
+                showToast('Error al procesar el archivo JSON: ' + error.message, 'error');
+                loading.classList.remove('show');
+            }
+        }
+
+        // Exportar datos
+        function exportarDatos() {
+            if (clientes.length === 0) {
+                showToast('No hay datos para exportar', 'error');
+                return;
+            }
+
+            const datosExportar = {
+                clientes: clientes.map(c => ({
+                    nombre: c.nombre,
+                    rfc: c.rfc
+                })),
+                exportadoEn: new Date().toISOString(),
+                total: clientes.length
+            };
+
+            try {
+                const blob = new Blob([JSON.stringify(datosExportar, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `clientes_${new Date().getTime()}.json`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                showToast('Datos exportados correctamente', 'success');
+            } catch (error) {
+                console.error('Error exportando:', error);
+                showToast('Error al exportar datos: ' + error.message, 'error');
+            }
+        }
+
+        // Eliminar cliente
+        window.eliminarCliente = async function(id) {
+            if (!confirm('¿Estás seguro de que deseas eliminar este cliente?')) return;
+            
+            try {
+                await deleteDoc(doc(db, 'usuarios', id));
+                showToast('Cliente eliminado correctamente', 'success');
+            } catch (error) {
+                console.error('Error eliminando cliente:', error);
+                showToast('Error al eliminar cliente: ' + error.message, 'error');
+            }
+        };
+
+        // Limpiar base de datos
+        clearBtn.addEventListener('click', async () => {
+            if (!confirm('¿Estás seguro? Esto eliminará TODOS los clientes de Firestore.')) return;
+            
+            try {
+                loading.classList.add('show');
+                clearBtn.disabled = true;
+
+                const usuariosRef = collection(db, 'usuarios');
+                const snapshot = await getDocs(usuariosRef);
+                const batch = writeBatch(db);
+
+                snapshot.forEach((doc) => {
+                    batch.delete(doc.ref);
+                });
+
+                await batch.commit();
+                
+                loading.classList.remove('show');
+                clearBtn.disabled = false;
+                showToast('Base de datos limpiada correctamente', 'success');
+            } catch (error) {
+                console.error('Error limpiando BD:', error);
+                showToast('Error al limpiar base de datos: ' + error.message, 'error');
+                loading.classList.remove('show');
+                clearBtn.disabled = false;
+            }
+        });
+
+        // Eventos de importación
+        importBtn.addEventListener('click', () => {
+            importModal.classList.add('show');
+        });
+
+        confirmImport.addEventListener('click', () => {
+            fileInput.click();
+        });
+
+        cancelImport.addEventListener('click', () => {
+            importModal.classList.remove('show');
+        });
+
+        fileInput.addEventListener('change', async (e) => {
+            const archivo = e.target.files[0];
+            if (archivo) {
+                await importarJSON(archivo);
+                fileInput.value = '';
+            }
+        });
+
+        exportBtn.addEventListener('click', exportarDatos);
+
+        // Búsqueda en tiempo real
+        searchInput.addEventListener('input', (e) => {
+            const termino = e.target.value.toLowerCase().trim();
+            if (termino === '') {
+                clientesFiltrados = [...clientes];
+            } else {
+                clientesFiltrados = clientes.filter(c => 
+                    c.nombre.toLowerCase().includes(termino) || 
+                    c.rfc.toLowerCase().includes(termino)
+                );
+            }
+            renderizarTabla(clientesFiltrados);
+        });
+
+        // Cargar datos al iniciar
+        cargarDatos();
+
+        // Limpiar listener al descargar
+        window.addEventListener('beforeunload', () => {
+            if (unsubscribe) {
+                unsubscribe();
+            }
+        });
+    </script>
+</body>
+</html>

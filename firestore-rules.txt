@@ -1,0 +1,38 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Colección usuarios
+    match /usuarios/{documento} {
+      // Permitir lectura para todos
+      allow read: if true;
+
+      // Permitir escritura para todos (desarrollo)
+      allow write: if true;
+
+      // Validar estructura de datos
+      allow create: if 
+        request.resource.data.keys().hasAll(['nombre', 'rfc']) &&
+        request.resource.data.size() == 2 &&
+        request.resource.data.nombre is string &&
+        request.resource.data.nombre.size() > 0 &&
+        request.resource.data.nombre.size() <= 255 &&
+        request.resource.data.rfc is string &&
+        request.resource.data.rfc.size() > 0 &&
+        request.resource.data.rfc.size() <= 20;
+
+      // Permitir actualización manteniendo estructura
+      allow update: if 
+        request.resource.data.keys().hasAll(['nombre', 'rfc']) &&
+        request.resource.data.size() == 2 &&
+        request.resource.data.nombre is string &&
+        request.resource.data.nombre.size() > 0 &&
+        request.resource.data.nombre.size() <= 255 &&
+        request.resource.data.rfc is string &&
+        request.resource.data.rfc.size() > 0 &&
+        request.resource.data.rfc.size() <= 20;
+
+      // Permitir delete para todos (desarrollo)
+      allow delete: if true;
+    }
+  }
+}
