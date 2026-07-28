@@ -6,7 +6,7 @@
 <title>Cotizador Pro</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Manrope:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
@@ -23,7 +23,8 @@
     --shadow:0 10px 30px -12px rgba(0,0,0,.5);
     --font-ui:'Manrope',sans-serif; --font-mono:'JetBrains Mono',monospace;
     /* paper / sheet palette (independent of app dark theme) */
-    --paper:#ffffff; --paper-ink:#1c2230; --paper-dim:#6b7280; --paper-line:#1f3a63; --paper-shade:#eef2f8; --paper-border:#d7dde6;
+    --paper:#ffffff; --paper-ink:#000000; --paper-dim:#444444; --paper-line:#000000; --paper-shade:#f5f5f5; --paper-border:#cccccc;
+    --font-elegant:'Playfair Display', serif;
   }
   *{box-sizing:border-box;}
   html,body{margin:0; padding:0;}
@@ -140,7 +141,9 @@
 
   /* ================= PAPER SHEET (full page invoice) ================= */
   .sheet-shell{display:flex; flex-direction:column; align-items:center;}
-  .sheet{width:100%; max-width:640px; background:var(--paper); color:var(--paper-ink); font-family:var(--font-ui); padding:36px 38px 30px; box-shadow:0 24px 60px -24px rgba(0,0,0,.6); border-radius:6px;}
+  .sheet{width:100%; max-width:850px; background:var(--paper); color:var(--paper-ink); font-family:Arial, Helvetica, sans-serif; padding:24px 24px; box-shadow:0 24px 60px -24px rgba(0,0,0,.6); border-radius:6px; margin:0 auto;}
+  .cfdi-table td { border-bottom:1px dashed #ccc; }
+  .cfdi-table tr:last-child td { border-bottom:none; }
   .sheet.style-alt{background:linear-gradient(180deg,#ffffff,#f7fbff); border:1px solid #e2e8f0;}
   .sheet.style-alt .doc-type{background:#1f6feb;color:#fff}
   .sheet.style-modern{background:linear-gradient(180deg,#ffffff,#f3f8ff); border:1px solid #dbeef8}
@@ -154,8 +157,8 @@
   .sheet.style-modern table.sheet-table thead th{background:linear-gradient(90deg, rgba(11,111,240,0.06), rgba(31,143,241,0.02)); color:#0b3a5f}
   .sheet.style-modern .sheet-qr .qrbox{border-radius:8px}
   .sheet-header{display:flex; justify-content:space-between; align-items:flex-start; gap:16px;}
-  .sheet-brand{display:flex; align-items:center; gap:12px;}
-  .sheet-brand img{max-height:52px; max-width:80px; object-fit:contain; border-radius:6px;}
+  .sheet-brand{display:flex; align-items:flex-start; gap:12px;}
+  .sheet-brand img{max-height:80px; max-width:250px; object-fit:contain; border-radius:6px;}
   /* allow summary card to hide totals (we hide by default per user request) */
   .summary-card .summary-total-value, .summary-card .summary-lines{display:none}
 
@@ -274,9 +277,8 @@
   <!-- ================= SIDEBAR ================= -->
   <aside class="sidebar">
     <div class="app-header">
-      <img id="sidebarLogo" src="logo.png" alt="logo">
+      <img id="sidebarLogo" src="baner.jpeg" alt="logo">
       <div>
-        <div class="app-title">Contabilidad Alvarez Nuñez</div>
         <div class="app-sub">Panel de negocio</div>
       </div>
     </div>
@@ -383,35 +385,7 @@
           </div>
 
           <div class="card">
-            <div class="section-title"><span class="num">4</span><span data-i18n="secTax">Impuestos y descuentos</span></div>
-            <div class="check-row">
-              <input type="checkbox" id="ivaToggle">
-              <label for="ivaToggle" data-i18n="lblIvaToggle">Incluir IVA</label>
-            </div>
-            <div class="row2">
-              <div class="field">
-                <label data-i18n="lblIvaPct">IVA %</label>
-                <input type="number" id="ivaPct" value="16" min="0" step="0.1">
-              </div>
-              <div class="field">
-                <label data-i18n="lblDiscVal">Descuento (valor)</label>
-                <div style="display:flex; gap:6px;">
-                  <input type="number" id="discVal" value="0" min="0" step="0.01">
-                  <select id="discType" class="mini" style="width:66px; padding:11px 8px;">
-                    <option value="pct">%</option>
-                    <option value="fixed">$</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-            <div class="field">
-              <label data-i18n="lblNotes">Notas / concepto adicional</label>
-              <textarea id="notes" placeholder=""></textarea>
-            </div>
-          </div>
-
-          <div class="card">
-            <div class="section-title"><span class="num">5</span><span data-i18n="secProducts">Productos</span></div>
+            <div class="section-title"><span class="num">4</span><span data-i18n="secProducts">Productos</span></div>
             <table class="items">
               <thead>
                 <tr>
@@ -430,13 +404,6 @@
             </div>
           </div>
 
-          <div class="card">
-            <div class="section-title"><span class="num">6</span><span data-i18n="secDeposit">Anticipo</span></div>
-            <div class="field" style="margin-bottom:0;">
-              <label data-i18n="lblDeposit">Anticipo / Depósito</label>
-              <input type="number" id="depositVal" value="0" min="0" step="0.01">
-            </div>
-          </div>
         </div>
 
         <!-- RIGHT: PREVIEW -->
@@ -456,10 +423,6 @@
             <div class="summary-total-value" id="bigTotal">$0.00</div>
             <div class="summary-lines">
               <div class="summary-line"><span data-i18n="lblSubtotal">Subtotal</span><b id="sSubtotal">$0.00</b></div>
-              <div class="summary-line" id="sIvaRow" style="display:none;"><span id="sIvaLabel">IVA (16%)</span><b id="sIva">$0.00</b></div>
-              <div class="summary-line" id="sDiscRow" style="display:none;"><span id="sDiscLabel">Descuento</span><b id="sDisc">-$0.00</b></div>
-              <div class="summary-line balance" id="sDepRow" style="display:none;"><span data-i18n="lblDepositApplied">Anticipo</span><b id="sDep">-$0.00</b></div>
-              <div class="summary-line balance" id="sBalRow" style="display:none;"><span data-i18n="lblBalance">Saldo pendiente</span><b id="sBal">$0.00</b></div>
             </div>
           </div>
 
@@ -468,65 +431,110 @@
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </span><span data-i18n="secPreview">Vista previa del documento</span></div>
 
-            <div class="sheet" id="sheetEl">
-              <div class="sheet-header">
-                <div class="sheet-brand">
-                  <img id="sheetLogo" style="display:none;">
-                  <div>
-                    <div class="sheet-brand-name" id="sheetBrandName">Tu Marca</div>
-                    <div class="sheet-brand-sub" id="sheetBrandSub"></div>
+            <div class="sheet invoice-cfdi" id="sheetEl">
+              <div class="cfdi-header" style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:10px;">
+                <div style="width:30%; text-align:left;">
+                  <img id="sheetLogo" style="display:none; max-width:100%; height:auto;">
+                </div>
+                <div style="width:40%; text-align:center; font-size:9px;">
+                  <div style="font-weight:bold;">MATRIZ :</div>
+                  <div>OBREGON 202<br>COL. EL GRULLO CENTRO C.P. 48740 EL GRULLO<br>EL GRULLO, JALISCO, MEXICO</div>
+                  <div style="display:none;">
+                    <div id="cfdiFactura"></div>
+                    <div id="cfdiFechaTimbrado"></div>
+                  </div>
+                  <div style="text-align:left; font-size:8px; margin-top:2px;">Régimen : 601 GENERAL DE LEY PERSONAS MORALES</div>
+                </div>
+                <div style="width:25%; text-align:center;">
+                  <div style="padding:10px 5px; font-size:8px; color:#555;">
+                    <div style="font-weight:bold; color:#000;">EXPEDIDO EN:</div>
+                    CIRCUNVALACION ORIENTE No. 495<br>COL. COLONIA CENTRO C.P. 48740 CD. EL GRULLO<br>MPIO. EL GRULLO, JALISCO, MEXICO
                   </div>
                 </div>
-                <div class="sheet-doc-box">
-                  <div class="doc-type" id="sheetDocType">COTIZACIÓN</div>
-                  <div class="doc-folio">No. <span id="sheetFolio">000001</span></div>
-                </div>
               </div>
-              <hr class="sheet-dotted">
-              <div class="sheet-info-grid">
-                <div class="info-cell"><span class="info-label" data-i18n="lblClient">Cliente</span><span class="info-value" id="sheetClient">—</span></div>
-                <div class="info-cell"><span class="info-label" data-i18n="lblRfcShort">RFC</span><span class="info-value" id="sheetRfc">—</span></div>
-                <div class="info-cell"><span class="info-label" data-i18n="lblDate">Fecha</span><span class="info-value" id="sheetDate">—</span></div>
-                <div class="info-cell"><span class="info-label" data-i18n="lblMethod">Método de pago</span><span class="info-value" id="sheetPay">—</span></div>
-                <div class="info-cell full" id="sheetNotesWrap" style="display:none;">
-                  <span class="info-label" data-i18n="lblConcept">Concepto / Notas</span>
-                  <span class="info-value" id="sheetNotesVal">—</span>
+
+              <div style="display:flex; justify-content:space-between; align-items:stretch; margin-bottom:10px; gap:5px;">
+                <div style="flex:1; border:1px solid #000; border-radius:3px; padding:5px; font-size:9px;">
+                  <div style="text-align:center; background:#eaeaea; border-bottom:1px solid #000; margin:-5px -5px 5px -5px; font-weight:bold; padding:2px;">DATOS DEL CLIENTE</div>
+                  <table style="width:100%; border-collapse:collapse; font-size:9px;">
+                    <tr><td style="width:60px; font-weight:bold;">Nombre :</td><td colspan="3" id="sheetClient">SALVADOR ALVAREZ FLORES</td></tr>
+                    <tr><td style="font-weight:bold; vertical-align:top;">Domicilio :</td><td colspan="3">CUAUHTEMOC # 39<br>Colonia: CENTRO, C.P. 48740, EL GRULLO, EL GRULLO, JALISCO, MEXICO</td></tr>
+                    <tr><td style="font-weight:bold;">Rfc :</td><td id="sheetRfc">XAXX010101000</td><td style="font-weight:bold; text-align:right; padding-right:5px;">Clave :</td><td>0459</td></tr>
+                    <tr><td style="font-weight:bold;">Tels:</td><td>Cel. 3211023202</td><td style="font-weight:bold; text-align:right; padding-right:5px;">Uso de CFDI :</td><td>S01 Sin efectos fiscales.</td></tr>
+                    <tr><td style="font-weight:bold;">Régimen :</td><td colspan="3">616 Sin obligaciones fiscales</td></tr>
+                  </table>
+                </div>
+                <div style="width:180px; display:flex; flex-direction:column; gap:2px;">
+                  <table style="width:100%; border-collapse:collapse; border:1px solid #000; font-size:9px; text-align:center; height:100%;">
+                    <tr><td style="border:1px solid #000; background:#eaeaea; font-weight:bold;">Fecha de Emisión</td></tr>
+                    <tr><td style="border:1px solid #000; padding:2px;" id="cfdiFechaEmision"></td></tr>
+                    <tr><td style="border:1px solid #000; background:#eaeaea; font-weight:bold;">Vencimiento</td></tr>
+                    <tr><td style="border:1px solid #000; padding:2px;">06/10/2024</td></tr>
+                    <tr><td style="border:1px solid #000; background:#eaeaea; font-weight:bold;">Condiciones</td></tr>
+                    <tr><td style="border:1px solid #000; padding:2px;">TREINTA DIAS</td></tr>
+                  </table>
                 </div>
               </div>
 
-              <table class="sheet-table">
-                <thead><tr><th data-i18n="thQty">Cant.</th><th data-i18n="thProduct">Concepto</th><th data-i18n="thPrice">Precio unit.</th><th data-i18n="thSub">Importe</th></tr></thead>
-                <tbody id="sheetItems"></tbody>
+              <table class="cfdi-table" style="width:100%; border-collapse:collapse; font-size:9px; margin-bottom:10px; border-top:1px solid #000; border-bottom:1px solid #000;">
+                <thead>
+                  <tr style="border-bottom:1px solid #000; background:#eaeaea;">
+                    <th style="padding:2px 4px; text-align:center;">Kilos</th>
+                    <th style="padding:2px 4px; text-align:center;">Clave SAT</th>
+                    <th style="padding:2px 4px; text-align:center;">Código</th>
+                    <th style="padding:2px 4px; text-align:left;">Descripción</th>
+                    <th style="padding:2px 4px; text-align:center;">Cant</th>
+                    <th style="padding:2px 4px; text-align:center;">UdeM</th>
+                    <th style="padding:2px 4px; text-align:center;">U/M SAT</th>
+                    <th style="padding:2px 4px; text-align:right;">Precio</th>
+                    <th style="padding:2px 4px; text-align:right;">Importe</th>
+                  </tr>
+                </thead>
+                <tbody id="sheetItems">
+                </tbody>
               </table>
 
-              <div class="sheet-bottom">
-                <div class="sheet-words" id="sheetWordsWrap">
-                  <span class="info-label" data-i18n="lblWords">Importe con letra</span>
-                  <div id="sheetWords">—</div>
+              <div style="display:flex; justify-content:space-between; align-items:stretch; border:1px solid #000; font-size:9px;">
+                <div style="flex:1; border-right:1px solid #000; display:flex; flex-direction:column;">
+                  <div style="background:#eaeaea; border-bottom:1px solid #000; text-align:center; font-weight:bold; padding:2px;">IMPORTE CON LETRA</div>
+                  <div id="sheetWords" style="padding:4px;">MIL OCHOCIENTOS CUARENTA PESOS 00/100 M.N.</div>
+                  <div id="sheetPay" style="display:none;"></div>
                 </div>
-                <table class="sheet-totals">
-                  <tbody>
-                    <tr><td data-i18n="lblSubtotal">Subtotal</td><td id="shSubtotal">$0.00</td></tr>
-                    <tr id="shIvaRow" style="display:none;"><td id="shIvaLabel">IVA (16%)</td><td id="shIva">$0.00</td></tr>
-                    <tr id="shDiscRow" style="display:none;"><td id="shDiscLabel">Descuento</td><td id="shDisc">-$0.00</td></tr>
-                    <tr class="grand"><td data-i18n="lblTotal">Total</td><td id="shTotal">$0.00</td></tr>
-                    <tr id="shDepRow" style="display:none;"><td data-i18n="lblDepositApplied">Anticipo</td><td id="shDep">-$0.00</td></tr>
-                    <tr id="shBalRow" style="display:none;" class="balance"><td data-i18n="lblBalance">Saldo pendiente</td><td id="shBal">$0.00</td></tr>
-                  </tbody>
-                </table>
+                <div style="width:200px; display:flex; flex-direction:column;">
+                  <div style="background:#eaeaea; border-bottom:1px solid #000; text-align:center; font-weight:bold; padding:2px;">TOTALES</div>
+                  <div style="flex:1; display:flex; flex-direction:column; justify-content:flex-end; padding:4px;">
+                    <table style="width:100%; border-collapse:collapse; margin-bottom:5px;">
+                      <tr>
+                        <td style="font-weight:bold; font-size:11px;">TOTAL :</td>
+                        <td style="text-align:right; font-size:11px;" id="shTotal">$1,840.00</td>
+                      </tr>
+                    </table>
+                  </div>
+                </div>
               </div>
 
-              <div class="sheet-footer">
-                <div class="sheet-sign">
-                  <div class="sign-line"></div>
-                  <span data-i18n="lblSign">Firma</span>
+              <div style="display:flex; gap:10px; margin-top:10px; font-size:6px; color:#333; line-height:1.2;">
+                <div class="sheet-qr" style="flex-shrink:0;">
+                  <div class="qrbox" id="qrBox" style="width:80px; height:80px; border:1px solid #000;"></div>
                 </div>
-                <div class="sheet-qr">
-                  <div class="qrbox" id="qrBox"></div>
-                  <span data-i18n="lblFolioShort">Folio</span> <span id="sheetFolioSmall">000001</span>
+                <div style="flex:1; word-break:break-all;">
+                  <b>Sello Digital CFDI:</b> uKhXl643f...<br>
+                  <b>Sello Digital SAT:</b> BTgJzVb...<br>
+                  <b>Cadena Original del Complemento de Certificación Digital del SAT:</b><br>||1.1|1B3FB42B...<br>
+                  <br>
+                  <div style="display:flex; justify-content:space-between; margin-top:5px;">
+                    <div style="width:60%;">
+                      <b>No. Certificado CFDI</b> 00001000000504153864 &nbsp;&nbsp;&nbsp; <b>No. Certificado SAT</b> 00001000000505142236<br>
+                      <span style="font-size:7px;">Este documento es una representación impresa de un CFDI</span><br>
+                      <span style="font-size:5px;">Debo y Pagaré a la orden de ACEROS Y TUBULARES DE LA COSTA en esta ciudad de EL GRULLO, JALISCO el día 06/10/2024 la cantidad de $ 1840 (MIL OCHOCIENTOS CUARENTA PESOS 00/100 M.N.), valor de mercancía recibida de entera conformidad...</span><br>
+                      <br>
+                      <b>GRACIAS POR SU PREFERENCIA</b>
+                    </div>
+                    <div style="width:30%; display:flex; flex-direction:column; align-items:center; justify-content:flex-end;">
+                    </div>
+                  </div>
                 </div>
               </div>
-              <div class="sheet-disclaimer" id="sheetDisclaimer" style="display:none;"></div>
             </div>
 
             <div class="preview-actions">
@@ -836,44 +844,109 @@ function pad6(n){ return String(n).padStart(6,'0'); }
 /* ============================================================
    Amount in words (Spanish) — matches classic MX invoice style
 ============================================================ */
-const UNI = ['', 'UNO','DOS','TRES','CUATRO','CINCO','SEIS','SIETE','OCHO','NUEVE','DIEZ',
-  'ONCE','DOCE','TRECE','CATORCE','QUINCE','DIECISÉIS','DIECISIETE','DIECIOCHO','DIECINUEVE'];
-const DEC = ['VEINTE','TREINTA','CUARENTA','CINCUENTA','SESENTA','SETENTA','OCHENTA','NOVENTA'];
-const CEN = ['','CIENTO','DOSCIENTOS','TRESCIENTOS','CUATROCIENTOS','QUINIENTOS','SEISCIENTOS','SETECIENTOS','OCHOCIENTOS','NOVECIENTOS'];
-function convertirDecenas(n){
-  if(n<20) return UNI[n];
-  if(n===20) return 'VEINTE';
-  if(n<30){
-    const especiales={21:'VEINTIUNO',22:'VEINTIDÓS',23:'VEINTITRÉS',26:'VEINTISÉIS'};
-    return especiales[n] || ('VEINTI'+UNI[n-20]);
+function Unidades(num){
+  switch(num){
+    case 1: return 'UN';
+    case 2: return 'DOS';
+    case 3: return 'TRES';
+    case 4: return 'CUATRO';
+    case 5: return 'CINCO';
+    case 6: return 'SEIS';
+    case 7: return 'SIETE';
+    case 8: return 'OCHO';
+    case 9: return 'NUEVE';
   }
-  const d=Math.floor(n/10)-2, u=n%10;
-  return DEC[d] + (u>0 ? ' Y '+UNI[u] : '');
+  return '';
 }
-function convertirCentenas(n){
-  if(n===0) return '';
-  if(n===100) return 'CIEN';
-  const c=Math.floor(n/100), r=n%100;
-  let s=CEN[c];
-  if(r>0) s += (s?' ':'')+convertirDecenas(r);
-  return s.trim();
+function Decenas(num){
+  let decena = Math.floor(num/10);
+  let unidad = num - (decena * 10);
+  switch(decena){
+    case 1:
+      switch(unidad){
+        case 0: return 'DIEZ';
+        case 1: return 'ONCE';
+        case 2: return 'DOCE';
+        case 3: return 'TRECE';
+        case 4: return 'CATORCE';
+        case 5: return 'QUINCE';
+        default: return 'DIECI' + Unidades(unidad);
+      }
+    case 2:
+      switch(unidad){
+        case 0: return 'VEINTE';
+        case 1: return 'VEINTIÚN';
+        default: return 'VEINTI' + Unidades(unidad);
+      }
+    case 3: return DecenasY('TREINTA', unidad);
+    case 4: return DecenasY('CUARENTA', unidad);
+    case 5: return DecenasY('CINCUENTA', unidad);
+    case 6: return DecenasY('SESENTA', unidad);
+    case 7: return DecenasY('SETENTA', unidad);
+    case 8: return DecenasY('OCHENTA', unidad);
+    case 9: return DecenasY('NOVENTA', unidad);
+    case 0: return Unidades(unidad);
+  }
 }
-function numeroALetrasES(num){
-  num=Math.floor(Math.max(num,0));
-  if(num===0) return I18N.es.cero;
-  let resto=num, partes=[];
-  const millones=Math.floor(resto/1000000); resto%=1000000;
-  const miles=Math.floor(resto/1000); resto%=1000;
-  const cientos=resto;
-  if(millones>0) partes.push(millones===1?'UN MILLÓN':convertirCentenas(millones)+' MILLONES');
-  if(miles>0) partes.push(miles===1?'MIL':convertirCentenas(miles)+' MIL');
-  if(cientos>0) partes.push(convertirCentenas(cientos));
-  return partes.join(' ').replace(/\s+/g,' ').trim();
+function DecenasY(strSin, numUnidades) {
+  if (numUnidades > 0) return strSin + ' Y ' + Unidades(numUnidades)
+  return strSin;
+}
+function Centenas(num) {
+  let centenas = Math.floor(num / 100);
+  let decenas = num - (centenas * 100);
+  switch(centenas){
+    case 1:
+      if (decenas > 0) return 'CIENTO ' + Decenas(decenas);
+      return 'CIEN';
+    case 2: return 'DOSCIENTOS ' + Decenas(decenas);
+    case 3: return 'TRESCIENTOS ' + Decenas(decenas);
+    case 4: return 'CUATROCIENTOS ' + Decenas(decenas);
+    case 5: return 'QUINIENTOS ' + Decenas(decenas);
+    case 6: return 'SEISCIENTOS ' + Decenas(decenas);
+    case 7: return 'SETECIENTOS ' + Decenas(decenas);
+    case 8: return 'OCHOCIENTOS ' + Decenas(decenas);
+    case 9: return 'NOVECIENTOS ' + Decenas(decenas);
+  }
+  return Decenas(decenas);
+}
+function Seccion(num, divisor, strSingular, strPlural) {
+  let cientos = Math.floor(num / divisor)
+  let resto = num - (cientos * divisor)
+  let letras = '';
+  if (cientos > 0)
+    if (cientos > 1) letras = Centenas(cientos) + ' ' + strPlural;
+    else letras = strSingular;
+  if (resto > 0) letras += '';
+  return letras;
+}
+function Miles(num) {
+  let divisor = 1000;
+  let cientos = Math.floor(num / divisor)
+  let resto = num - (cientos * divisor)
+  let strMiles = Seccion(num, divisor, 'UN MIL', 'MIL');
+  let strCentenas = Centenas(resto);
+  if(strMiles == '') return strCentenas;
+  return strMiles + (strCentenas ? ' ' + strCentenas : '');
+}
+function Millones(num) {
+  let divisor = 1000000;
+  let cientos = Math.floor(num / divisor)
+  let resto = num - (cientos * divisor)
+  let strMillones = Seccion(num, divisor, 'UN MILLÓN', 'MILLONES');
+  let strMiles = Miles(resto);
+  if(strMillones == '') return strMiles;
+  return strMillones + (strMiles ? ' ' + strMiles : '');
+}
+function numeroALetrasES(num) {
+  num = Math.floor(Math.max(num, 0));
+  if (num == 0) return I18N.es.cero;
+  let letras = Millones(num);
+  return letras.trim();
 }
 function amountInWords(total){
   const intPart = Math.floor(total);
-  const decPart = Math.round((total-intPart)*100);
-  return `${numeroALetrasES(intPart)} ${currencyWord()} ${String(decPart).padStart(2,'0')}/100 M.N.`;
+  return `${numeroALetrasES(intPart)} ${currencyWord()}`;
 }
 
 /* ============================================================
@@ -987,7 +1060,7 @@ async function deleteClientFromFirestore(fsId){
    Items state + table (built only on structural changes)
 ============================================================ */
 let items = [];
-let logoDataUrl = null;
+let logoDataUrl = 'baner.jpeg';
 let idCounter = 1;
 
 function buildItemsTable(){
@@ -1032,18 +1105,8 @@ function addItem(name='', qty=1, price=0){
 ============================================================ */
 function computeTotals(){
   const subtotal = items.reduce((s,it)=> s + (it.qty*it.price), 0);
-  const ivaOn = document.getElementById('ivaToggle').checked;
-  const ivaPct = Number(document.getElementById('ivaPct').value)||0;
-  const iva = ivaOn ? subtotal * ivaPct/100 : 0;
-  const discType = document.getElementById('discType').value;
-  const discRaw = Number(document.getElementById('discVal').value)||0;
-  const discount = discType==='pct' ? subtotal*discRaw/100 : discRaw;
-  let total = subtotal + iva - discount;
-  if(total < 0) total = 0;
-  const deposit = Number(document.getElementById('depositVal').value)||0;
-  let balance = total - deposit;
-  if(balance < 0) balance = 0;
-  return {subtotal, ivaOn, ivaPct, iva, discType, discRaw, discount, total, deposit, balance};
+  const total = Math.max(0, subtotal);
+  return {subtotal, total};
 }
 
 /* ============================================================
@@ -1051,50 +1114,7 @@ function computeTotals(){
 ============================================================ */
 function renderQr(){
   const box = document.getElementById('qrBox');
-  box.innerHTML = '';
-  const brand = document.getElementById('brandName').value || 'Contabilidad Alvarez Nuñez';
-  // build a readable plain-text representation of the document for QR scanners
-  const folio = pad6(meta.nextFolio);
-  const dateVal = document.getElementById('docDate').value || '';
-  const client = document.getElementById('clientName').value || '';
-  const rfc = document.getElementById('clientRfc').value || '';
-  const t = computeTotals();
-  const itemsText = items.length ? items.map(it => `${it.name || '-'} x${it.qty} = ${fmt(it.qty*it.price)}`).join('; ') : '';
-  const importeLetra = (currentLang==='es') ? amountInWords(t.total) : '';
-  const parts = [
-    `${document.getElementById('docType').value || 'RECIBO DE PAGO'}`,
-    `Folio: ${folio}`,
-    dateVal ? `Fecha: ${dateVal}` : null,
-    brand ? `Emisor: ${brand}` : null,
-    client ? `Cliente: ${client}` : null,
-    rfc ? `RFC: ${rfc}` : null,
-    itemsText ? `Items: ${itemsText}` : null,
-    `Subtotal: ${fmt(t.subtotal)}`,
-    t.ivaOn ? `IVA (${t.ivaPct}%): ${fmt(t.iva)}` : null,
-    t.discount>0 ? `Descuento: ${fmt(t.discount)}` : null,
-    `Total: ${fmt(t.total)}`,
-    importeLetra ? `Importe en letras: ${importeLetra}` : null
-  ].filter(Boolean);
-  const text = parts.join(' | ');
-  try{
-    if(typeof QRCode !== 'undefined'){
-      // animate QR when regenerating and make it slightly larger in preview
-      const size = 88;
-      box.style.display = 'flex';
-      box.style.minWidth = size + 'px';
-      box.style.minHeight = size + 'px';
-      box.classList.remove('anim');
-      box.innerHTML = '';
-      void box.offsetWidth;
-      new QRCode(box, { text, width:size, height:size, colorDark:'#1c2230', colorLight:'#ffffff' });
-      box.classList.add('anim');
-      setTimeout(()=> box.classList.remove('anim'), 380);
-    } else {
-      box.textContent = 'QR';
-    }
-  }catch(e){
-    box.textContent = 'QR';
-  }
+  box.innerHTML = '<img src="codigo-qr.png" style="width:100%;height:100%;object-fit:contain;">';
 }
 
 /* ============================================================
@@ -1108,53 +1128,34 @@ function updateSheet(){
   if(folioEl) folioEl.textContent = `${dict.lblFolioShort.toUpperCase()} ${pad6(meta.nextFolio)}`;
   document.getElementById('bigTotal').textContent = fmt(t.total);
   document.getElementById('sSubtotal').textContent = fmt(t.subtotal);
-  document.getElementById('sIvaRow').style.display = t.ivaOn ? 'flex':'none';
-  document.getElementById('sIvaLabel').textContent = `${currentLang==='es'?'IVA':'Tax'} (${t.ivaPct}%)`;
-  document.getElementById('sIva').textContent = fmt(t.iva);
-  document.getElementById('sDiscRow').style.display = t.discount>0 ? 'flex':'none';
-  document.getElementById('sDiscLabel').textContent = `${dict.discount}${t.discType==='pct' ? ' ('+t.discRaw+'%)':''}`;
-  document.getElementById('sDisc').textContent = '-'+fmt(t.discount);
-  document.getElementById('sDepRow').style.display = t.deposit>0 ? 'flex':'none';
-  document.getElementById('sDep').textContent = '-'+fmt(t.deposit);
-  document.getElementById('sBalRow').style.display = t.deposit>0 ? 'flex':'none';
-  document.getElementById('sBal').textContent = fmt(t.balance);
 
-  document.getElementById('sheetBrandName').textContent = document.getElementById('brandName').value || (currentLang==='es'?'Tu Marca':'Your Brand');
-  document.getElementById('sheetBrandSub').textContent = document.getElementById('brandSub').value;
-  document.getElementById('sheetDocType').textContent = (document.getElementById('docType').value || (currentLang==='es'?'COTIZACIÓN':'QUOTE')).toUpperCase();
-  document.getElementById('sheetFolio').textContent = pad6(meta.nextFolio);
-  document.getElementById('sheetFolioSmall').textContent = pad6(meta.nextFolio);
+  const folioFormatted = document.getElementById('docType').value + ' ' + pad6(meta.nextFolio);
+  const nowStr = new Date().toLocaleString('es-MX', {dateStyle:'short', timeStyle:'short'});
+  if (document.getElementById('cfdiFactura')) document.getElementById('cfdiFactura').textContent = folioFormatted;
+  if (document.getElementById('cfdiFechaTimbrado')) document.getElementById('cfdiFechaTimbrado').textContent = nowStr;
+  if (document.getElementById('cfdiFechaEmision')) document.getElementById('cfdiFechaEmision').textContent = nowStr;
 
-  document.getElementById('sheetClient').textContent = document.getElementById('clientName').value || '—';
-  document.getElementById('sheetRfc').textContent = document.getElementById('clientRfc').value || '—';
-  const dateVal = document.getElementById('docDate').value;
-  document.getElementById('sheetDate').textContent = dateVal ? new Date(dateVal+'T00:00:00').toLocaleDateString(currentLang==='es'?'es-MX':undefined,{year:'numeric',month:'long',day:'numeric'}) : '—';
-  document.getElementById('sheetPay').textContent = document.getElementById('payMethod').selectedOptions[0].textContent;
-
-  const notesVal = document.getElementById('notes').value;
-  document.getElementById('sheetNotesWrap').style.display = notesVal ? 'block' : 'none';
-  document.getElementById('sheetNotesVal').textContent = notesVal;
+  if (document.getElementById('sheetClient')) document.getElementById('sheetClient').textContent = document.getElementById('clientName').value || '—';
+  if (document.getElementById('sheetRfc')) document.getElementById('sheetRfc').textContent = document.getElementById('clientRfc').value || '—';
+  if (document.getElementById('sheetPay')) document.getElementById('sheetPay').textContent = document.getElementById('payMethod').selectedOptions[0].textContent;
 
   const sheetItems = document.getElementById('sheetItems');
   sheetItems.innerHTML = items.length
-    ? items.map(it=>`<tr><td>${it.qty}</td><td>${escapeHtml(it.name)||'-'}</td><td style="text-align:right;">${fmt(it.price)}</td><td>${fmt(it.qty*it.price)}</td></tr>`).join('')
-    : `<tr><td colspan="4" style="text-align:center; color:var(--paper-dim);">${currentLang==='es'?'Sin productos aún':'No products yet'}</td></tr>`;
+    ? items.map(it=>`<tr>
+        <td style="padding:2px 4px; text-align:center;">10.00</td>
+        <td style="padding:2px 4px; text-align:center;">01010101</td>
+        <td style="padding:2px 4px; text-align:center;">-</td>
+        <td style="padding:2px 4px; text-align:left;">${escapeHtml(it.name)||'-'}</td>
+        <td style="padding:2px 4px; text-align:center;">${it.qty}</td>
+        <td style="padding:2px 4px; text-align:center;">PZA</td>
+        <td style="padding:2px 4px; text-align:center;">H87</td>
+        <td style="padding:2px 4px; text-align:right;">${fmt(it.price)}</td>
+        <td style="padding:2px 4px; text-align:right;">${fmt(it.qty*it.price)}</td>
+      </tr>`).join('')
+    : `<tr><td colspan="9" style="text-align:center; color:#999; padding:10px;">${currentLang==='es'?'Sin productos aún':'No products yet'}</td></tr>`;
 
-  document.getElementById('shSubtotal').textContent = fmt(t.subtotal);
-  document.getElementById('shIvaRow').style.display = t.ivaOn ? 'table-row':'none';
-  document.getElementById('shIvaLabel').textContent = `${currentLang==='es'?'IVA':'Tax'} (${t.ivaPct}%)`;
-  document.getElementById('shIva').textContent = fmt(t.iva);
-  document.getElementById('shDiscRow').style.display = t.discount>0 ? 'table-row':'none';
-  document.getElementById('shDiscLabel').textContent = `${dict.discount}${t.discType==='pct' ? ' ('+t.discRaw+'%)':''}`;
-  document.getElementById('shDisc').textContent = '-'+fmt(t.discount);
-  document.getElementById('shTotal').textContent = fmt(t.total);
-  document.getElementById('shDepRow').style.display = t.deposit>0 ? 'table-row':'none';
-  document.getElementById('shDep').textContent = '-'+fmt(t.deposit);
-  document.getElementById('shBalRow').style.display = t.deposit>0 ? 'table-row':'none';
-  document.getElementById('shBal').textContent = fmt(t.balance);
-
-  document.getElementById('sheetWordsWrap').style.display = currentLang==='es' ? 'block':'none';
-  if(currentLang==='es') document.getElementById('sheetWords').textContent = amountInWords(t.total);
+  if (document.getElementById('shTotal')) document.getElementById('shTotal').textContent = fmt(t.total);
+  if (document.getElementById('sheetWords')) document.getElementById('sheetWords').textContent = amountInWords(t.total);
 
   if(logoDataUrl){
     const logoEl = document.getElementById('sheetLogo');
@@ -1564,8 +1565,10 @@ if(currSel){ currSel.addEventListener('change', e=>{ currentCurrency = CURRENCIE
 document.getElementById('addItemBtn').addEventListener('click', ()=> addItem());
 ['docType','docDate','payMethod','clientName','clientRfc','brandName','brandSub','ivaToggle','ivaPct','discVal','discType','notes','depositVal'].forEach(id=>{
   const el = document.getElementById(id);
-  el.addEventListener('input', updateSheet);
-  el.addEventListener('change', updateSheet);
+  if (el) {
+    el.addEventListener('input', updateSheet);
+    el.addEventListener('change', updateSheet);
+  }
 });
 document.getElementById('logoFile').addEventListener('change', e=>{
   const file = e.target.files[0];
@@ -1734,11 +1737,11 @@ function setupMobileUX(){
   await loadAllData();
   try{ initFirebase(); await fetchFirestoreUsers(); await fetchFirestoreTickets(); }catch(e){ console.warn('Init Firestore', e); }
   // default company name and default logo file
-  document.getElementById('brandName').value = 'Contabilidad Alvarez Nuñez';
+  document.getElementById('brandName').value = '';
   // default document type
   document.getElementById('docType').value = 'RECIBO DE PAGO';
   // prefer shipped logo.png in same folder (will be requested by browser)
-  logoDataUrl = 'logo.png';
+  logoDataUrl = 'baner.jpeg';
   addItem(currentLang==='es' ? 'Playera personalizada' : 'Custom shirt', 1, 250);
   // convert left-side cards into collapsibles (Marca closed by default)
   try{ makeCardsCollapsible(); }catch(e){ console.warn('collapsible init', e); }
