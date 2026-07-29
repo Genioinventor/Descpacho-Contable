@@ -553,6 +553,7 @@ function buildTicketCardHtml(h, showDeleteLocal = false){
           <div><strong>Marca:</strong> ${escapeHtml(h.brand || '-')}</div>
           <div><strong>Fecha:</strong> ${new Date(h.date).toLocaleString()}</div>
         </div>
+        ${h.note ? `<div style="margin-bottom:12px; font-size:12px; color:var(--violet-2); background:rgba(124,92,255,.1); padding:8px; border-radius:6px; border:1px dashed var(--violet-2);"><strong>Nota oculta:</strong><br><span style="white-space:pre-wrap;">${escapeHtml(h.note)}</span></div>` : ''}
         <table class="history-table">
           <thead>
             <tr>
@@ -570,11 +571,63 @@ function buildTicketCardHtml(h, showDeleteLocal = false){
           <div style="font-weight:800; font-size:13.5px;">
             TOTAL: <span style="color:var(--violet-2);">$ ${h.total.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}</span>
           </div>
-          ${deleteBtn}
+          <div style="display:flex; gap:8px;">
+            <button class="btn btn-outline btn-sm" onclick="downloadHistoryPdf('${h.id}')">Descargar PDF</button>
+            ${deleteBtn}
+          </div>
         </div>
       </div>
     </div>
   `;
+}
+
+window.downloadHistoryPdf = async function(id) {
+  const h = ticketHistory.find(t => t.id === id);
+  if(!h) return;
+  const btn = event.currentTarget;
+  const origText = btn.innerHTML;
+  btn.innerHTML = '<span class="spinner"></span> Generando...';
+  btn.disabled = true;
+
+  const oldItems = [...items];
+  const oldClient = document.getElementById('clientName').value;
+  const oldRfc = document.getElementById('clientRfc').value;
+  const oldNote = document.getElementById('clientNote') ? document.getElementById('clientNote').value : '';
+  const origFolio = meta.nextFolio;
+
+  items = h.items || [];
+  document.getElementById('clientName').value = h.client || '';
+  document.getElementById('clientRfc').value = h.rfc || '';
+  if(document.getElementById('clientNote')) document.getElementById('clientNote').value = h.note || '';
+  meta.nextFolio = h.folio;
+
+  updateSheet();
+
+  try {
+    const canvas = await captureSheet();
+    const imgData = canvas.toDataURL('image/png', 1.0);
+    const wPt = canvas.width * 0.75;
+    const hPt = canvas.height * 0.75;
+    if(!window.jspdf) throw new Error('jspdf-not-loaded');
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF({ unit:'pt', format:[wPt, hPt] });
+    pdf.addImage(imgData, 'PNG', 0, 0, wPt, hPt);
+    pdf.save(`documento-${pad6(h.folio)}.pdf`);
+    showToast('PDF descargado con éxito', 'success');
+  } catch(e) {
+    console.error(e);
+    showToast('Error al generar PDF', 'error');
+  }
+
+  items = oldItems;
+  document.getElementById('clientName').value = oldClient;
+  document.getElementById('clientRfc').value = oldRfc;
+  if(document.getElementById('clientNote')) document.getElementById('clientNote').value = oldNote;
+  meta.nextFolio = origFolio;
+  updateSheet();
+  
+  btn.innerHTML = origText;
+  btn.disabled = false;
 }
 
 function renderHistory(){
@@ -802,16 +855,31 @@ async function saveTicketRecord(opts){
     showToast(I18N.needItems,'error');
     return null;
   }
+  const clientNameVal = document.getElementById('clientName').value.trim();
+  if(!clientNameVal){
+    showToast('El nombre del cliente es obligatorio para generar el ticket.', 'error');
+    return null;
+  }
+  const rfcVal = document.getElementById('clientRfc').value.trim();
+  if(!rfcVal){
+    showToast('El RFC es obligatorio para generar el ticket.', 'error');
+    return null;
+  }
   const t = computeTotals();
   const folio = meta.nextFolio;
   const createdAt = new Date().toISOString();
   const ticketId = activeDraftId || generateTicketId();
+  
+  const noteEl = document.getElementById('clientNote');
+  const hiddenNote = noteEl ? noteEl.value.trim() : '';
+
   const ticket = {
     id: ticketId,
     folio,
     brand: 'Alvarez & Nuñez',
     client: document.getElementById('clientName').value,
-    rfc: document.getElementById('clientRfc').value,
+    rfc: rfcVal,
+    note: hiddenNote,
     total: t.total,
     date: createdAt,
     currencySymbol: '$',

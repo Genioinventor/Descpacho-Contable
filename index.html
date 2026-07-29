@@ -103,12 +103,16 @@
             <div class="row2">
               <div class="field">
                 <label>Nombre del cliente</label>
-                <input type="text" id="clientName" placeholder="">
+                <input type="text" id="clientName" placeholder="Obligatorio">
               </div>
               <div class="field">
-                <label>RFC / Identificación (opcional)</label>
-                <input type="text" id="clientRfc" placeholder="">
+                <label>RFC</label>
+                <input type="text" id="clientRfc" placeholder="Obligatorio">
               </div>
+            </div>
+            <div class="field" style="margin-top:12px;">
+              <label>Nota (Invisible en imagen)</label>
+              <textarea id="clientNote" placeholder="Texto escondido que no saldrá en el ticket visible..." rows="3" style="width:100%; resize:vertical; padding:10px; border-radius:8px; border:1px solid rgba(124,92,255,.45); background:transparent; color:var(--text); font-family:inherit; outline:none;"></textarea>
             </div>
           </div>
 
