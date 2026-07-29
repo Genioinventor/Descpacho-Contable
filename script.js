@@ -423,7 +423,7 @@ function updateSheet(){
   const sheetItems = document.getElementById('sheetItems');
   if(sheetItems){
     const ROW_H = '26px'; // altura fija para TODAS las filas (items + relleno)
-    const TOTAL_ROWS = 8;  // total de filas visibles siempre
+    const TOTAL_ROWS = 13;  // total de filas visibles siempre
     const showSubtotal = items.some(it => Number(it.qty) > 1);
 
     const sheetThead = document.getElementById('sheetThead');
@@ -507,85 +507,149 @@ function toggleHistoryDetails(id){
   if(el) el.classList.toggle('open');
 }
 
+function buildTicketCardHtml(h, showDeleteLocal = false){
+  const itemsHtml = (h.items || []).map(it => `
+    <tr>
+      <td>${escapeHtml(it.name || 'Producto')}</td>
+      <td style="text-align:center;">${it.qty || 1}</td>
+      <td style="text-align:right;">$ ${(Number(it.price)||0).toFixed(2)}</td>
+      <td style="text-align:right; font-weight:700;">$ ${((it.qty||1)*(it.price||0)).toFixed(2)}</td>
+    </tr>
+  `).join('');
+
+  const isSynced = !!h.fsId;
+  const syncBadge = isSynced
+    ? `<span class="history-badge-sync online"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M17.5 19a4.5 4.5 0 0 0 0-9 6 6 0 0 0-11.6-1.7A4.5 4.5 0 0 0 6.5 19h11z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Nube</span>`
+    : `<span class="history-badge-sync offline"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="4" y="2" width="16" height="20" rx="2" stroke="currentColor" stroke-width="2"/><line x1="4" y1="17" x2="20" y2="17" stroke="currentColor" stroke-width="2"/></svg> Dispositivo</span>`;
+
+  const deleteBtn = showDeleteLocal
+    ? `<button class="btn btn-danger btn-sm ticket-delete" data-id="${h.id}">Eliminar</button>`
+    : `<button class="btn btn-danger btn-sm ticket-delete" data-id="${h.id}">Eliminar ticket</button>`;
+
+  return `
+    <div class="history-item-container" data-id="${h.id}">
+      <div class="history-header" onclick="toggleHistoryDetails('${h.id}')">
+        <div>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span class="hi-folio">FOLIO ${pad6(h.folio)}</span>
+            ${syncBadge}
+          </div>
+          <div class="hi-main">${escapeHtml(h.brand)}${h.client? ' · '+escapeHtml(h.client):''}</div>
+          <div class="hi-sub">${new Date(h.date).toLocaleString()}</div>
+        </div>
+        <div style="display:flex; align-items:center; gap:10px;">
+          <div class="hi-total">$ ${h.total.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}</div>
+          <button class="btn btn-outline btn-sm" type="button"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="margin-right:4px; vertical-align:-2px;"><path d="M1.5 12S5 5 12 5s10.5 7 10.5 7-3.5 7-10.5 7S1.5 12 1.5 12z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.8"/></svg>Ver detalle</button>
+        </div>
+      </div>
+      <div class="history-details" id="details-${h.id}">
+        <div class="readonly-badge">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          Registro guardado &bull; Solo lectura (no modificable)
+        </div>
+        <div style="margin-bottom:8px; display:grid; grid-template-columns:1fr 1fr; gap:8px; font-size:12px; color:var(--text-dim);">
+          <div><strong>Cliente:</strong> ${escapeHtml(h.client || 'Público general')}</div>
+          <div><strong>RFC:</strong> ${escapeHtml(h.rfc || 'Sin RFC')}</div>
+          <div><strong>Marca:</strong> ${escapeHtml(h.brand || '-')}</div>
+          <div><strong>Fecha:</strong> ${new Date(h.date).toLocaleString()}</div>
+        </div>
+        <table class="history-table">
+          <thead>
+            <tr>
+              <th>Producto</th>
+              <th style="text-align:center;">Cant</th>
+              <th style="text-align:right;">Precio</th>
+              <th style="text-align:right;">Subtotal</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${itemsHtml || '<tr><td colspan="4" style="text-align:center; color:var(--text-faint);">Sin desglose de items</td></tr>'}
+          </tbody>
+        </table>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px; padding-top:8px; border-top:1px solid var(--border-soft);">
+          <div style="font-weight:800; font-size:13.5px;">
+            TOTAL: <span style="color:var(--violet-2);">$ ${h.total.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}</span>
+          </div>
+          ${deleteBtn}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
 function renderHistory(){
   const list = document.getElementById('historyList');
   if(!list) return;
-  if(ticketHistory.length===0){
+
+  // Separar en nube vs local
+  const cloudTickets = ticketHistory.filter(h => !h.localOnly);
+  const localTickets = ticketHistory.filter(h => !!h.localOnly);
+
+  if(ticketHistory.length === 0){
     list.innerHTML = `<p class="empty-hint">${I18N.emptyHist}</p>`;
     return;
   }
-  list.innerHTML = ticketHistory.map(h=>{
-    const itemsHtml = (h.items || []).map(it => `
-      <tr>
-        <td>${escapeHtml(it.name || 'Producto')}</td>
-        <td style="text-align:center;">${it.qty || 1}</td>
-        <td style="text-align:right;">$ ${(Number(it.price)||0).toFixed(2)}</td>
-        <td style="text-align:right; font-weight:700;">$ ${((it.qty||1)*(it.price||0)).toFixed(2)}</td>
-      </tr>
-    `).join('');
 
-    const isSynced = h.fsId ? true : false;
-    const syncBadge = isSynced
-      ? `<span class="history-badge-sync online"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M17.5 19a4.5 4.5 0 0 0 0-9 6 6 0 0 0-11.6-1.7A4.5 4.5 0 0 0 6.5 19h11z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Nube</span>`
-      : `<span class="history-badge-sync offline"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="4" y="2" width="16" height="20" rx="2" stroke="currentColor" stroke-width="2"/><line x1="4" y1="17" x2="20" y2="17" stroke="currentColor" stroke-width="2"/></svg> Dispositivo</span>`;
+  let html = '';
 
-    return `
-      <div class="history-item-container" data-id="${h.id}">
-        <div class="history-header" onclick="toggleHistoryDetails('${h.id}')">
-          <div>
-            <div style="display:flex; align-items:center; gap:8px;">
-              <span class="hi-folio">FOLIO ${pad6(h.folio)}</span>
-              ${syncBadge}
-            </div>
-            <div class="hi-main">${escapeHtml(h.brand)}${h.client? ' · '+escapeHtml(h.client):''}</div>
-            <div class="hi-sub">${new Date(h.date).toLocaleString()}</div>
-          </div>
-          <div style="display:flex; align-items:center; gap:10px;">
-            <div class="hi-total">$ ${h.total.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}</div>
-            <button class="btn btn-outline btn-sm" type="button"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="margin-right:4px; vertical-align:-2px;"><path d="M1.5 12S5 5 12 5s10.5 7 10.5 7-3.5 7-10.5 7S1.5 12 1.5 12z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.8"/></svg>Ver detalle</button>
-          </div>
+  // ---- Sección NUBE ----
+  if(cloudTickets.length === 0){
+    html += `<p class="empty-hint" style="margin-bottom:24px;">No hay tickets en la base de datos todavía.</p>`;
+  } else {
+    html += cloudTickets.map(h => buildTicketCardHtml(h, false)).join('');
+  }
+
+  // ---- Sección LOCAL ----
+  html += `
+    <div class="history-local-section" id="localSection">
+      <div class="history-local-header" onclick="toggleLocalSection()">
+        <div class="history-local-title">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><rect x="4" y="2" width="16" height="20" rx="2" stroke="currentColor" stroke-width="2"/><line x1="4" y1="17" x2="20" y2="17" stroke="currentColor" stroke-width="2"/></svg>
+          Tickets locales (dispositivo)
+          <span class="local-count-badge">${localTickets.length}</span>
         </div>
-        <div class="history-details" id="details-${h.id}">
-          <div class="readonly-badge">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-            Registro guardado &bull; Solo lectura (no modificable)
-          </div>
-          <div style="margin-bottom:8px; display:grid; grid-template-columns:1fr 1fr; gap:8px; font-size:12px; color:var(--text-dim);">
-            <div><strong>Cliente:</strong> ${escapeHtml(h.client || 'Público general')}</div>
-            <div><strong>RFC:</strong> ${escapeHtml(h.rfc || 'Sin RFC')}</div>
-            <div><strong>Marca:</strong> ${escapeHtml(h.brand || '-')}</div>
-            <div><strong>Fecha:</strong> ${new Date(h.date).toLocaleString()}</div>
-          </div>
-          <table class="history-table">
-            <thead>
-              <tr>
-                <th>Producto</th>
-                <th style="text-align:center;">Cant</th>
-                <th style="text-align:right;">Precio</th>
-                <th style="text-align:right;">Subtotal</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${itemsHtml || '<tr><td colspan="4" style="text-align:center; color:var(--text-faint);">Sin desglose de items</td></tr>'}
-            </tbody>
-          </table>
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px; padding-top:8px; border-top:1px solid var(--border-soft);">
-            <div style="font-weight:800; font-size:13.5px;">
-              TOTAL: <span style="color:var(--violet-2);">$ ${h.total.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}</span>
-            </div>
-            <button class="btn btn-danger btn-sm ticket-delete" data-id="${h.id}">Eliminar ticket</button>
-          </div>
+        <div style="display:flex; align-items:center; gap:10px;">
+          ${localTickets.length > 0 ? `<button class="btn btn-danger btn-sm" type="button" id="deleteAllLocalBtn" onclick="event.stopPropagation(); deleteAllLocalTickets()">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><polyline points="3 6 5 6 21 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M10 11v6M14 11v6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            Borrar todo local
+          </button>` : ''}
+          <svg class="local-section-caret" width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </div>
       </div>
-    `;
-  }).join('');
+      <div class="history-local-body" id="localBody">
+        ${localTickets.length === 0
+          ? `<p class="empty-hint" style="padding:18px 0 8px;">No hay tickets guardados solo en este dispositivo.</p>`
+          : localTickets.map(h => buildTicketCardHtml(h, true)).join('')
+        }
+      </div>
+    </div>
+  `;
 
-  list.querySelectorAll('.ticket-delete').forEach(btn=> {
-    btn.addEventListener('click', (e)=>{
+  list.innerHTML = html;
+
+  list.querySelectorAll('.ticket-delete').forEach(btn => {
+    btn.addEventListener('click', (e) => {
       e.stopPropagation();
       handleDeleteTicket(btn.dataset.id);
     });
   });
+}
+
+function toggleLocalSection(){
+  const body = document.getElementById('localBody');
+  const section = document.getElementById('localSection');
+  if(!body || !section) return;
+  section.classList.toggle('collapsed');
+}
+
+async function deleteAllLocalTickets(){
+  const count = ticketHistory.filter(h => !!h.localOnly).length;
+  if(count === 0) return;
+  if(!confirm(`¿Eliminar los ${count} ticket(s) guardados solo en este dispositivo? Esta acción no se puede deshacer.`)) return;
+  ticketHistory = ticketHistory.filter(h => !h.localOnly);
+  await persistTickets();
+  renderHistory();
+  showToast(`${count} ticket(s) local(es) eliminados`, 'success');
 }
 
 async function handleDeleteTicket(ticketId){
@@ -630,23 +694,31 @@ function renderClientDropdown(query){
     ? clients.filter(c => normalizeForSearch(c.name).includes(q) || normalizeForSearch(c.rfc).includes(q))
     : clients;
 
-  const list = matches.slice(0, 30);
+  const list = matches;
 
-  let html = '';
-  html += `<div class="client-dd-item client-dd-new" data-action="new">
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><line x1="12" y1="5" x2="12" y2="19" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="5" y1="12" x2="19" y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-      <span>Nuevo cliente (llenar manualmente)</span>
-    </div>`;
+  let html = `<div class="cdd-header">
+    <span class="cdd-header-title">${q ? `Resultados ("${escapeHtml(q)}")` : 'Clientes registrados'}</span>
+    <span class="cdd-count">${list.length}</span>
+  </div>`;
+
+  html += `<div class="cdd-new" data-action="new">
+    <span class="cdd-new-icon">+</span>
+    <span>Nuevo cliente (llenar manualmente)</span>
+  </div>`;
 
   if(list.length === 0){
-    html += `<div class="client-dd-empty">${clients.length===0 ? 'Aún no tienes clientes guardados.' : 'Sin coincidencias para tu búsqueda.'}</div>`;
+    html += `<div class="cdd-empty">${clients.length===0 ? '📋 Aún no tienes clientes guardados.' : '🔍 Sin coincidencias.'}</div>`;
   } else {
+    html += `<div class="cdd-grid">`;
     html += list.map(c => `
-      <div class="client-dd-item" data-id="${c.id}">
-        <span class="client-dd-name">${escapeHtml(c.name || 'Sin nombre')}</span>
-        ${c.rfc ? `<span class="client-dd-rfc">${escapeHtml(c.rfc)}</span>` : ''}
+      <div class="cdd-card" data-id="${c.id}">
+        <div class="cdd-main-info">
+          <span class="cdd-name" title="${escapeHtml(c.name || '')}">${escapeHtml(c.name || 'Sin nombre')}</span>
+          ${c.rfc ? `<span class="cdd-rfc">${escapeHtml(c.rfc)}</span>` : '<span class="cdd-no-rfc">Sin RFC</span>'}
+        </div>
       </div>
     `).join('');
+    html += `</div>`;
   }
 
   dropdown.innerHTML = html;
@@ -677,19 +749,22 @@ document.getElementById('clientSearchClear')?.addEventListener('click', () => {
 });
 
 document.getElementById('clientDropdown')?.addEventListener('click', (e) => {
-  const item = e.target.closest('.client-dd-item');
-  if(!item) return;
-  if(item.dataset.action === 'new'){
+  const card = e.target.closest('.cdd-card');
+  const newBtn = e.target.closest('.cdd-new');
+  if(newBtn){
     if(document.getElementById('clientName')) document.getElementById('clientName').value = '';
     if(document.getElementById('clientRfc')) document.getElementById('clientRfc').value = '';
     clientSearchInputEl.value = '';
-  } else {
-    const c = clients.find(cl => String(cl.id) === item.dataset.id);
-    if(c){
-      if(document.getElementById('clientName')) document.getElementById('clientName').value = c.name || '';
-      if(document.getElementById('clientRfc')) document.getElementById('clientRfc').value = c.rfc || '';
-      clientSearchInputEl.value = c.name || '';
-    }
+    closeClientDropdown();
+    updateSheet();
+    return;
+  }
+  if(!card) return;
+  const c = clients.find(cl => String(cl.id) === card.dataset.id);
+  if(c){
+    if(document.getElementById('clientName')) document.getElementById('clientName').value = c.name || '';
+    if(document.getElementById('clientRfc')) document.getElementById('clientRfc').value = c.rfc || '';
+    clientSearchInputEl.value = c.name || '';
   }
   closeClientDropdown();
   updateSheet();
@@ -781,7 +856,7 @@ function unlockActions(){
   const panel = document.getElementById('postUploadActions');
   if(panel){ panel.style.display = 'flex'; panel.classList.add('visible'); }
   // Remove lock from all action buttons
-  ['waBtn','pdfBtn','pngBtn','copyImgBtn'].forEach(id=>{
+  ['waBtn','pdfBtn','pngBtn','copyImgBtn','reloadPageBtn'].forEach(id=>{
     const el = document.getElementById(id);
     if(el) el.classList.remove('action-locked');
   });
@@ -792,16 +867,19 @@ function unlockActions(){
   }
   const upBtn = document.getElementById('uploadBtn');
   if(upBtn){
-    upBtn.classList.add('uploaded');
-    upBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg> Guardado';
+    upBtn.style.display = 'none';
   }
+  const localLoadBtn = document.getElementById('localLoadBtn');
+  if(localLoadBtn) localLoadBtn.style.display = 'none';
+  const localLoadOptions = document.getElementById('localLoadOptions');
+  if(localLoadOptions) localLoadOptions.style.display = 'none';
 }
 
 function lockActions(){
   // Hide post-upload panel completely
   const panel = document.getElementById('postUploadActions');
   if(panel){ panel.style.display = 'none'; panel.classList.remove('visible'); }
-  ['waBtn','pdfBtn','pngBtn','copyImgBtn'].forEach(id=>{
+  ['waBtn','pdfBtn','pngBtn','copyImgBtn','reloadPageBtn'].forEach(id=>{
     const el = document.getElementById(id);
     if(el) el.classList.add('action-locked');
   });
@@ -817,9 +895,12 @@ function lockActions(){
   }
   const upBtn = document.getElementById('uploadBtn');
   if(upBtn){
+    upBtn.style.display = '';
     upBtn.classList.remove('uploaded');
-    upBtn.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><polyline points="17 8 12 3 7 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><line x1="12" y1="3" x2="12" y2="15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Subir ticket';
+    upBtn.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><polyline points="17 8 12 3 7 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><line x1="12" y1="3" x2="12" y2="15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Subir ticket';
   }
+  const localLoadBtn = document.getElementById('localLoadBtn');
+  if(localLoadBtn) localLoadBtn.style.display = '';
 }
 
 function onTicketChanged(){
