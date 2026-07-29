@@ -64,31 +64,12 @@
       <div class="layout">
         <!-- LEFT: FORM -->
         <div>
-          <div class="card">
-            <div class="section-title"><span class="num">1</span><span>Documento</span></div>
-            <div class="row3">
-              <div class="field">
-                <label>Fecha</label>
-                <input type="date" id="docDate">
-              </div>
-              <div class="field">
-                <label>Hora</label>
-                <input type="time" id="docTime">
-              </div>
-              <div class="field">
-                <label>Método de pago</label>
-                <select id="payMethod">
-                  <option selected>Efectivo</option>
-                  <option>Transferencia</option>
-                  <option>Contado</option>
-                  <option>Tarjeta</option>
-                </select>
-              </div>
-            </div>
-          </div>
+          <!-- Inputs ocultos para compatibilidad con la generación de ticket -->
+          <input type="hidden" id="docDate">
+          <input type="hidden" id="docTime">
 
           <div class="card">
-            <div class="section-title"><span class="num">2</span><span>Cliente</span></div>
+            <div class="section-title"><span class="num">1</span><span>Cliente</span></div>
             <div class="field client-search-field">
               <label>Buscar cliente guardado</label>
               <div class="client-search-box">
@@ -100,7 +81,7 @@
               </div>
               <div class="client-dropdown" id="clientDropdown"></div>
             </div>
-            <div class="row2">
+            <div class="row3">
               <div class="field">
                 <label>Nombre del cliente</label>
                 <input type="text" id="clientName" placeholder="Obligatorio">
@@ -108,6 +89,15 @@
               <div class="field">
                 <label>RFC</label>
                 <input type="text" id="clientRfc" placeholder="Obligatorio">
+              </div>
+              <div class="field">
+                <label>Método de pago</label>
+                <select id="payMethod">
+                  <option selected>Efectivo</option>
+                  <option>Transferencia</option>
+                  <option>Contado</option>
+                  <option>Tarjeta</option>
+                </select>
               </div>
             </div>
             <div class="field" style="margin-top:12px;">
@@ -117,7 +107,7 @@
           </div>
 
           <div class="card">
-            <div class="section-title"><span class="num">3</span><span>Productos</span></div>
+            <div class="section-title"><span class="num">2</span><span>Productos</span></div>
             <table class="items">
               <thead>
                 <tr>
@@ -328,9 +318,18 @@
 
       <div class="single-col">
         <div class="card">
-          <div class="section-title"><span class="num">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.2"/><path d="M12 7v6l3 2" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          </span><span>Historial de tickets</span></div>
+          <div class="section-title" style="display:flex; align-items:center; justify-content:space-between;">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span class="num">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.2"/><path d="M12 7v6l3 2" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </span>
+              <span>Historial de tickets</span>
+            </div>
+            <button class="btn btn-outline btn-sm" id="refreshTicketsBtn" type="button" style="padding:4px 10px; font-size:12px; height:auto; gap:6px;">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M2.5 22v-6h6"/><path d="M2 11.5a10 10 0 0 1 18.8-4.3L21.5 8M22 12.5a10 10 0 0 1-18.8 4.2L2.5 16"/></svg>
+              Sincronizar
+            </button>
+          </div>
           <div class="history-list" id="historyList">
             <p class="empty-hint">Aún no has generado ningún ticket.</p>
           </div>

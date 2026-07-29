@@ -75,9 +75,25 @@ async function fetchFirestoreUsers() {
   if (!firestoreDb) return;
   try {
     const snap = await firestoreDb.collection('usuarios').get();
-    snap.forEach(doc => {
-      const d = doc.data();
-      const exists = clients.some(c => c.fsId && c.fsId === doc.id);
+    firestoreConnected = true;
+
+    const remoteUserMap = new Map();
+    snap.forEach(doc => remoteUserMap.set(doc.id, doc.data()));
+
+    clients = clients.filter(c => {
+      if (c.localOnly) return true;
+      if (c.fsId) return remoteUserMap.has(c.fsId);
+      for (let [docId, d] of remoteUserMap.entries()) {
+        if (c.name === d.nombre && c.rfc === d.rfc) {
+          c.fsId = docId;
+          return true;
+        }
+      }
+      return false;
+    });
+
+    remoteUserMap.forEach((d, docId) => {
+      const exists = clients.some(c => c.fsId === docId);
       if (!exists) {
         clients.push({
           id: Date.now() + Math.floor(Math.random() * 9999),
@@ -86,13 +102,14 @@ async function fetchFirestoreUsers() {
           phone: d.telefono || '',
           email: d.email || '',
           address: d.direccion || '',
-          fsId: doc.id
+          fsId: docId
         });
       }
     });
-    firestoreConnected = true;
+
     renderClientList();
     updateDbStatus();
+    await persistClients();
   } catch (e) {
     console.warn('fetchFirestoreUsers', e);
     firestoreConnected = false;

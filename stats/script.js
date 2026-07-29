@@ -96,25 +96,53 @@ async function initFirebaseAndSync() {
     }
 
     if (firestoreDb) {
-      // Sync clients from Firestore
+      // Sincronizar clientes desde Firestore
       const clientsSnap = await firestoreDb.collection('usuarios').get();
-      clientsSnap.forEach(doc => {
-        const d = doc.data();
-        const exists = clientsData.some(c => c.fsId === doc.id || (c.name === d.nombre && c.rfc === d.rfc));
+      const remoteClientsMap = new Map();
+      clientsSnap.forEach(doc => remoteClientsMap.set(doc.id, doc.data()));
+
+      clientsData = clientsData.filter(c => {
+        if (c.localOnly) return true;
+        if (c.fsId) return remoteClientsMap.has(c.fsId);
+        for (let [docId, d] of remoteClientsMap.entries()) {
+          if (c.name === d.nombre && c.rfc === d.rfc) {
+            c.fsId = docId;
+            return true;
+          }
+        }
+        return false;
+      });
+
+      remoteClientsMap.forEach((d, docId) => {
+        const exists = clientsData.some(c => c.fsId === docId);
         if (!exists) {
-          clientsData.push({ id: doc.id, fsId: doc.id, name: d.nombre || '', rfc: d.rfc || '' });
+          clientsData.push({ id: docId, fsId: docId, name: d.nombre || '', rfc: d.rfc || '' });
         }
       });
 
-      // Sync tickets from Firestore
+      // Sincronizar tickets desde Firestore
       const ticketsSnap = await firestoreDb.collection('tickets').orderBy('createdAt', 'desc').get();
-      ticketsSnap.forEach(doc => {
-        const d = doc.data();
-        const exists = ticketsData.some(t => t.fsId === doc.id || (t.folio === d.folio && t.total === d.total));
+      const remoteTicketsMap = new Map();
+      ticketsSnap.forEach(doc => remoteTicketsMap.set(doc.id, doc.data()));
+
+      ticketsData = ticketsData.filter(t => {
+        if (t.localOnly) return true;
+        if (t.fsId) return remoteTicketsMap.has(t.fsId);
+        for (let [docId, d] of remoteTicketsMap.entries()) {
+          if (t.folio === d.folio && Number(t.total) === Number(d.total)) {
+            t.fsId = docId;
+            return true;
+          }
+        }
+        return false;
+      });
+
+      remoteTicketsMap.forEach((d, docId) => {
+        const exists = ticketsData.some(t => t.fsId === docId);
         if (!exists) {
           ticketsData.push({
-            id: doc.id,
-            fsId: doc.id,
+            id: docId,
+            fsId: docId,
             folio: d.folio,
             client: d.client,
             total: d.total,
@@ -123,7 +151,19 @@ async function initFirebaseAndSync() {
         }
       });
 
+      ticketsData.sort((a, b) => (Number(b.folio) || 0) - (Number(a.folio) || 0));
+
       renderStatsUI();
+
+      // Guardar caché sincronizada
+      try {
+        if (window.storage && typeof window.storage.set === 'function') {
+          await window.storage.set('cotizador-tickets', JSON.stringify(ticketsData), false);
+          await window.storage.set('cotizador-clients', JSON.stringify(clientsData), false);
+        }
+      } catch (e) {}
+      localStorage.setItem('cotizador-tickets', JSON.stringify(ticketsData));
+      localStorage.setItem('cotizador-clients', JSON.stringify(clientsData));
     }
   } catch (error) {
     console.warn('Firebase sync warning:', error);

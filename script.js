@@ -159,6 +159,15 @@ async function setStorageItem(key, val){
   localStorage.setItem(key, val);
 }
 
+function getNextFolioNumber(){
+  if(!ticketHistory || ticketHistory.length === 0) return 1;
+  const maxFolio = ticketHistory.reduce((max, t) => {
+    const num = Number(t.folio);
+    return !isNaN(num) && num > max ? num : max;
+  }, 0);
+  return Math.max(ticketHistory.length + 1, maxFolio + 1);
+}
+
 async function loadAllData(){
   try{
     const c = await getStorageItem('cotizador-clients');
@@ -173,6 +182,7 @@ async function loadAllData(){
     const m = await getStorageItem('cotizador-meta');
     meta = m ? JSON.parse(m) : { nextFolio: 1 };
   }catch(e){ meta = { nextFolio: 1 }; }
+  meta.nextFolio = getNextFolioNumber();
 }
 
 async function persistClients(){
@@ -216,16 +226,33 @@ async function fetchFirestoreUsers(){
   if(!firestoreDb) return;
   try{
     const snap = await firestoreDb.collection('usuarios').get();
-    snap.forEach(doc=>{
-      const d = doc.data();
-      const exists = clients.some(c=> c.fsId && c.fsId === doc.id);
+    firestoreConnected = true;
+
+    const remoteUserMap = new Map();
+    snap.forEach(doc => remoteUserMap.set(doc.id, doc.data()));
+
+    clients = clients.filter(c => {
+      if (c.localOnly) return true;
+      if (c.fsId) return remoteUserMap.has(c.fsId);
+      for (let [docId, d] of remoteUserMap.entries()) {
+        if (c.name === d.nombre && c.rfc === d.rfc) {
+          c.fsId = docId;
+          return true;
+        }
+      }
+      return false;
+    });
+
+    remoteUserMap.forEach((d, docId) => {
+      const exists = clients.some(c => c.fsId === docId);
       if(!exists){
-        clients.push({ id: Date.now() + Math.floor(Math.random()*9999), name: d.nombre || '', rfc: d.rfc || '', fsId: doc.id });
+        clients.push({ id: Date.now() + Math.floor(Math.random()*9999), name: d.nombre || '', rfc: d.rfc || '', fsId: docId });
       }
     });
-    firestoreConnected = true;
+
     renderClientSelect();
     updateDbStatus();
+    await persistClients();
   }catch(e){ console.warn('fetchFirestoreUsers', e); firestoreConnected = false; updateDbStatus(); }
 }
 
@@ -233,13 +260,44 @@ async function fetchFirestoreTickets(){
   if(!firestoreDb) return;
   try{
     const snap = await firestoreDb.collection('tickets').orderBy('createdAt','desc').get();
-    snap.forEach(doc=>{
-      const d = doc.data();
-      const exists = ticketHistory.some(t=> t.fsId === doc.id || (!t.fsId && t.folio === d.folio && t.date === d.date && t.total === d.total));
-      if(!exists){
+    firestoreConnected = true;
+
+    const remoteDocMap = new Map();
+    snap.forEach(doc => {
+      remoteDocMap.set(doc.id, doc.data());
+    });
+
+    // Depurar tickets de la nube que fueron borrados en Firestore
+    ticketHistory = ticketHistory.filter(ticket => {
+      if (ticket.localOnly) return true;
+      if (ticket.fsId) {
+        return remoteDocMap.has(ticket.fsId);
+      }
+      for (let [docId, d] of remoteDocMap.entries()) {
+        if (ticket.folio === d.folio && Number(ticket.total) === Number(d.total)) {
+          ticket.fsId = docId;
+          return true;
+        }
+      }
+      return false;
+    });
+
+    // Agregar o actualizar los tickets retornados de Firestore
+    remoteDocMap.forEach((d, docId) => {
+      const existing = ticketHistory.find(t => t.fsId === docId || (!t.localOnly && t.folio === d.folio && Number(t.total) === Number(d.total)));
+      if (existing) {
+        existing.fsId = docId;
+        existing.folio = d.folio;
+        existing.brand = d.brand;
+        existing.client = d.client;
+        existing.rfc = d.rfc;
+        existing.total = d.total;
+        existing.date = d.date;
+        existing.items = d.items || existing.items || [];
+      } else {
         ticketHistory.push({
           id: generateTicketId(),
-          fsId: doc.id,
+          fsId: docId,
           folio: d.folio,
           brand: d.brand,
           client: d.client,
@@ -252,8 +310,14 @@ async function fetchFirestoreTickets(){
         });
       }
     });
+
+    ticketHistory.sort((a, b) => (Number(b.folio) || 0) - (Number(a.folio) || 0));
+
+    meta.nextFolio = getNextFolioNumber();
+    await persistMeta();
     renderHistory();
     await persistTickets();
+    updateSheet();
   }catch(e){ console.warn('Firestore fetch tickets:', e); }
 }
 
@@ -381,6 +445,7 @@ function updateSheet(){
   const clientRfcVal  = document.getElementById('clientRfc')?.value  || '';
   if(document.getElementById('sheetClient')) document.getElementById('sheetClient').textContent = clientNameVal || '-';
   if(document.getElementById('sheetRfc')) document.getElementById('sheetRfc').textContent = clientRfcVal || '-';
+  meta.nextFolio = getNextFolioNumber();
   const folioVal = pad6(_uploadedFolio || meta.nextFolio);
   if(document.getElementById('sheetFolio')) document.getElementById('sheetFolio').textContent = folioVal;
   if(document.getElementById('sheetPayMethod')) document.getElementById('sheetPayMethod').textContent = document.getElementById('payMethod')?.value || 'Contado';
@@ -593,13 +658,13 @@ window.downloadHistoryPdf = async function(id) {
   const oldClient = document.getElementById('clientName').value;
   const oldRfc = document.getElementById('clientRfc').value;
   const oldNote = document.getElementById('clientNote') ? document.getElementById('clientNote').value : '';
-  const origFolio = meta.nextFolio;
+  const _tempFolio = _uploadedFolio;
+  _uploadedFolio = h.folio;
 
   items = h.items || [];
   document.getElementById('clientName').value = h.client || '';
   document.getElementById('clientRfc').value = h.rfc || '';
   if(document.getElementById('clientNote')) document.getElementById('clientNote').value = h.note || '';
-  meta.nextFolio = h.folio;
 
   updateSheet();
 
@@ -623,7 +688,7 @@ window.downloadHistoryPdf = async function(id) {
   document.getElementById('clientName').value = oldClient;
   document.getElementById('clientRfc').value = oldRfc;
   if(document.getElementById('clientNote')) document.getElementById('clientNote').value = oldNote;
-  meta.nextFolio = origFolio;
+  _uploadedFolio = _tempFolio;
   updateSheet();
   
   btn.innerHTML = origText;
@@ -700,8 +765,11 @@ async function deleteAllLocalTickets(){
   if(count === 0) return;
   if(!confirm(`¿Eliminar los ${count} ticket(s) guardados solo en este dispositivo? Esta acción no se puede deshacer.`)) return;
   ticketHistory = ticketHistory.filter(h => !h.localOnly);
+  meta.nextFolio = getNextFolioNumber();
+  await persistMeta();
   await persistTickets();
   renderHistory();
+  updateSheet();
   showToast(`${count} ticket(s) local(es) eliminados`, 'success');
 }
 
@@ -710,9 +778,12 @@ async function handleDeleteTicket(ticketId){
   if(index === -1) return;
   const ticket = ticketHistory[index];
   ticketHistory.splice(index, 1);
+  meta.nextFolio = getNextFolioNumber();
+  await persistMeta();
   await persistTickets();
   if(ticket.fsId) await deleteTicketFromFirestore(ticket.fsId);
   renderHistory();
+  updateSheet();
 }
 
 /* ============================================================
@@ -767,7 +838,7 @@ function renderClientDropdown(query){
       <div class="cdd-card" data-id="${c.id}">
         <div class="cdd-main-info">
           <span class="cdd-name" title="${escapeHtml(c.name || '')}">${escapeHtml(c.name || 'Sin nombre')}</span>
-          ${c.rfc ? `<span class="cdd-rfc">${escapeHtml(c.rfc)}</span>` : '<span class="cdd-no-rfc">Sin RFC</span>'}
+          ${c.rfc ? `<span class="cdd-rfc">${escapeHtml(String(c.rfc).trim().slice(0, 3))}</span>` : '<span class="cdd-no-rfc">Sin RFC</span>'}
         </div>
       </div>
     `).join('');
@@ -866,7 +937,7 @@ async function saveTicketRecord(opts){
     return null;
   }
   const t = computeTotals();
-  const folio = meta.nextFolio;
+  const folio = getNextFolioNumber();
   const createdAt = new Date().toISOString();
   const ticketId = activeDraftId || generateTicketId();
   
@@ -888,10 +959,8 @@ async function saveTicketRecord(opts){
     localOnly
   };
   ticketHistory.unshift(ticket);
-  if(!localOnly){
-    meta.nextFolio = folio + 1;
-    await persistMeta();
-  }
+  meta.nextFolio = getNextFolioNumber();
+  await persistMeta();
   await persistTickets();
 
   let uploadedCloud = false;
@@ -1289,6 +1358,7 @@ function setupMobileUX(){
   // 3. UI setup & initial rendering
   if(document.getElementById('docType')) document.getElementById('docType').value = 'RECIBO DE PAGO';
   logoDataUrl = 'baner.jpeg';
+  if (items.length === 0) addItem();
 
   try{ makeCardsCollapsible(); }catch(e){}
   try{ setupMobileUX(); }catch(e){}
@@ -1331,6 +1401,20 @@ function setupMobileUX(){
       showToast('Datos sincronizados con éxito', 'success');
     } catch(e) {
       showToast('Modo sin conexión activo', 'warn');
+    } finally {
+      if(btn) setTimeout(() => btn.classList.remove('spinning'), 600);
+    }
+  });
+
+  document.getElementById('refreshTicketsBtn')?.addEventListener('click', async () => {
+    const btn = document.getElementById('refreshTicketsBtn');
+    if(btn) btn.classList.add('spinning');
+    try {
+      if(typeof initFirebase === 'function') initFirebase();
+      await fetchFirestoreTickets();
+      showToast('Historial de tickets sincronizado', 'success');
+    } catch(e) {
+      showToast('Error al sincronizar historial', 'error');
     } finally {
       if(btn) setTimeout(() => btn.classList.remove('spinning'), 600);
     }
