@@ -9,54 +9,63 @@ const firebaseConfig = {
 let firestoreDb = null;
 let firestoreConnected = false;
 
+let clientsData = [];
+let ticketsData = [];
+
+async function getStorageItem(key) {
+  try {
+    if (window.storage && typeof window.storage.get === 'function') {
+      const res = await window.storage.get(key, false);
+      if (res && res.value !== undefined) return res.value;
+    }
+  } catch (e) {}
+  return localStorage.getItem(key);
+}
+
 function fmtAmount(value) {
   return new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', minimumFractionDigits: 2 }).format(value || 0);
 }
 
-function updateDbStatus(clientCount = 0) {
+function updateDbStatus() {
   const dbEl = document.getElementById('dbStatus');
   const sideClient = document.getElementById('sidebarClientCount');
   if (dbEl) {
-    dbEl.textContent = firestoreConnected ? `Base de datos: Conectada — ${clientCount} clientes` : 'Base de datos: Offline (local)';
+    dbEl.textContent = firestoreConnected ? `Base de datos: Conectada` : 'Base de datos: Offline (local)';
   }
   if (sideClient) {
-    sideClient.textContent = `Clientes: ${clientCount}`;
+    sideClient.textContent = `Clientes: ${clientsData.length}`;
   }
 }
 
-async function initFirebase() {
+async function loadLocalStats() {
   try {
-    if (typeof firebase !== 'undefined' && !firebase.apps.length) {
-      firebase.initializeApp(firebaseConfig);
-      firestoreDb = firebase.firestore();
-      firestoreConnected = true;
-      await firestoreDb.collection('usuarios').limit(1).get();
-    }
-  } catch (error) {
-    console.warn('Firebase init failed', error);
-    firestoreConnected = false;
-  } finally {
-    const clients = JSON.parse(localStorage.getItem('cotizador-clients') || '[]');
-    updateDbStatus(clients.length);
-  }
+    const rawClients = await getStorageItem('cotizador-clients');
+    clientsData = rawClients ? JSON.parse(rawClients) : [];
+  } catch (e) { clientsData = []; }
+
+  try {
+    const rawTickets = await getStorageItem('cotizador-tickets');
+    ticketsData = rawTickets ? JSON.parse(rawTickets) : [];
+  } catch (e) { ticketsData = []; }
+
+  renderStatsUI();
 }
 
-function loadStats() {
-  const clients = JSON.parse(localStorage.getItem('cotizador-clients') || '[]');
-  const tickets = JSON.parse(localStorage.getItem('cotizador-tickets') || '[]');
-  document.getElementById('clientCount').textContent = clients.length;
-  document.getElementById('ticketCount').textContent = tickets.length;
-  updateDbStatus(clients.length);
-  const totalRevenue = tickets.reduce((sum, ticket) => sum + (ticket.total || 0), 0);
+function renderStatsUI() {
+  document.getElementById('clientCount').textContent = clientsData.length;
+  document.getElementById('ticketCount').textContent = ticketsData.length;
+  updateDbStatus();
+
+  const totalRevenue = ticketsData.reduce((sum, ticket) => sum + (Number(ticket.total) || 0), 0);
   document.getElementById('totalRevenue').textContent = fmtAmount(totalRevenue);
-  document.getElementById('averageTicket').textContent = tickets.length ? fmtAmount(totalRevenue / tickets.length) : fmtAmount(0);
+  document.getElementById('averageTicket').textContent = ticketsData.length ? fmtAmount(totalRevenue / ticketsData.length) : fmtAmount(0);
 
   const clientList = document.getElementById('clientList');
   clientList.innerHTML = '';
-  if (clients.length === 0) {
+  if (clientsData.length === 0) {
     clientList.innerHTML = '<p class="empty-state">No hay clientes registrados aún.</p>';
   } else {
-    clients.slice(0, 5).forEach(client => {
+    clientsData.slice(0, 5).forEach(client => {
       const item = document.createElement('div');
       item.className = 'list-item';
       item.innerHTML = `<strong>${client.name || 'Cliente sin nombre'}</strong><span>${client.rfc ? 'RFC: ' + client.rfc : 'Sin RFC'}</span>`;
@@ -66,10 +75,10 @@ function loadStats() {
 
   const ticketList = document.getElementById('ticketList');
   ticketList.innerHTML = '';
-  if (tickets.length === 0) {
+  if (ticketsData.length === 0) {
     ticketList.innerHTML = '<p class="empty-state">No hay tickets generados aún.</p>';
   } else {
-    tickets.slice(0, 5).forEach(ticket => {
+    ticketsData.slice(0, 5).forEach(ticket => {
       const item = document.createElement('div');
       item.className = 'list-item';
       item.innerHTML = `<strong>Folio ${String(ticket.folio).padStart(6, '0')}</strong><span>${ticket.client || 'Cliente no asignado'} — ${fmtAmount(ticket.total)}</span>`;
@@ -78,7 +87,68 @@ function loadStats() {
   }
 }
 
-window.addEventListener('DOMContentLoaded', () => {
-  loadStats();
-  initFirebase();
+async function initFirebaseAndSync() {
+  try {
+    if (typeof firebase !== 'undefined' && !firebase.apps.length) {
+      firebase.initializeApp(firebaseConfig);
+      firestoreDb = firebase.firestore();
+      firestoreConnected = true;
+    }
+
+    if (firestoreDb) {
+      // Sync clients from Firestore
+      const clientsSnap = await firestoreDb.collection('usuarios').get();
+      clientsSnap.forEach(doc => {
+        const d = doc.data();
+        const exists = clientsData.some(c => c.fsId === doc.id || (c.name === d.nombre && c.rfc === d.rfc));
+        if (!exists) {
+          clientsData.push({ id: doc.id, fsId: doc.id, name: d.nombre || '', rfc: d.rfc || '' });
+        }
+      });
+
+      // Sync tickets from Firestore
+      const ticketsSnap = await firestoreDb.collection('tickets').orderBy('createdAt', 'desc').get();
+      ticketsSnap.forEach(doc => {
+        const d = doc.data();
+        const exists = ticketsData.some(t => t.fsId === doc.id || (t.folio === d.folio && t.total === d.total));
+        if (!exists) {
+          ticketsData.push({
+            id: doc.id,
+            fsId: doc.id,
+            folio: d.folio,
+            client: d.client,
+            total: d.total,
+            date: d.date
+          });
+        }
+      });
+
+      renderStatsUI();
+    }
+  } catch (error) {
+    console.warn('Firebase sync warning:', error);
+    firestoreConnected = false;
+    updateDbStatus();
+  }
+}
+
+window.addEventListener('DOMContentLoaded', async () => {
+  const overlay = document.getElementById('loadingOverlay');
+  await loadLocalStats();
+  if (overlay) overlay.style.display = 'none';
+
+  await initFirebaseAndSync();
+
+  document.getElementById('refreshBtn')?.addEventListener('click', async () => {
+    const btn = document.getElementById('refreshBtn');
+    if (btn) btn.classList.add('spinning');
+    try {
+      await loadLocalStats();
+      await initFirebaseAndSync();
+    } catch(e) {
+      console.warn('Sync failed', e);
+    } finally {
+      if (btn) setTimeout(() => btn.classList.remove('spinning'), 600);
+    }
+  });
 });

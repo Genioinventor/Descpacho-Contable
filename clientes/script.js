@@ -1,0 +1,312 @@
+/* ============================================================
+   Clientes Module - Storage & Firestore Sync
+============================================================ */
+
+let clients = [];
+let editingClientId = null;
+let deleteArmedId = null;
+
+async function getStorageItem(key) {
+  try {
+    if (window.storage && typeof window.storage.get === 'function') {
+      const res = await window.storage.get(key, false);
+      if (res && res.value !== undefined) return res.value;
+    }
+  } catch (e) {}
+  return localStorage.getItem(key);
+}
+
+async function setStorageItem(key, val) {
+  try {
+    if (window.storage && typeof window.storage.set === 'function') {
+      await window.storage.set(key, val, false);
+    }
+  } catch (e) {}
+  localStorage.setItem(key, val);
+}
+
+async function loadAllClients() {
+  try {
+    const raw = await getStorageItem('cotizador-clients');
+    clients = raw ? JSON.parse(raw) : [];
+  } catch (e) {
+    clients = [];
+  }
+}
+
+async function persistClients() {
+  try {
+    await setStorageItem('cotizador-clients', JSON.stringify(clients));
+    return true;
+  } catch (e) {
+    showToast('Error al guardar datos locales', 'error');
+    return false;
+  }
+}
+
+/* ============================================================
+   Firebase Config & Firestore Sync
+============================================================ */
+const firebaseConfig = {
+  apiKey: "AIzaSyCJa46EK5NW7dC03Uc058x4A-sa_AWnfyk",
+  authDomain: "contabilidad-an.firebaseapp.com",
+  projectId: "contabilidad-an",
+  storageBucket: "contabilidad-an.firebasestorage.app",
+  messagingSenderId: "773806099214",
+  appId: "1:773806099214:web:2e8b14c4a5e5b2cfb2a55f"
+};
+
+let firestoreDb = null;
+let firestoreConnected = false;
+
+function initFirebase() {
+  try {
+    if (typeof firebase !== 'undefined' && !firebase.apps.length) {
+      firebase.initializeApp(firebaseConfig);
+      firestoreDb = firebase.firestore();
+      firestoreConnected = true;
+    }
+  } catch (e) {
+    console.warn('Firebase init failed', e);
+  }
+}
+
+async function fetchFirestoreUsers() {
+  if (!firestoreDb) return;
+  try {
+    const snap = await firestoreDb.collection('usuarios').get();
+    snap.forEach(doc => {
+      const d = doc.data();
+      const exists = clients.some(c => c.fsId && c.fsId === doc.id);
+      if (!exists) {
+        clients.push({
+          id: Date.now() + Math.floor(Math.random() * 9999),
+          name: d.nombre || '',
+          rfc: d.rfc || '',
+          phone: d.telefono || '',
+          email: d.email || '',
+          address: d.direccion || '',
+          fsId: doc.id
+        });
+      }
+    });
+    firestoreConnected = true;
+    renderClientList();
+    updateDbStatus();
+  } catch (e) {
+    console.warn('fetchFirestoreUsers', e);
+    firestoreConnected = false;
+    updateDbStatus();
+  }
+}
+
+async function saveClientToFirestore(localClient) {
+  if (!firestoreDb || !localClient) return null;
+  try {
+    const payload = {
+      nombre: (localClient.name || '').trim(),
+      rfc: (localClient.rfc || '').trim(),
+      telefono: (localClient.phone || '').trim(),
+      email: (localClient.email || '').trim(),
+      direccion: (localClient.address || '').trim()
+    };
+    if (localClient.fsId) {
+      await firestoreDb.collection('usuarios').doc(localClient.fsId).set(payload, { merge: true });
+      return localClient.fsId;
+    } else {
+      const ref = await firestoreDb.collection('usuarios').add(payload);
+      localClient.fsId = ref.id;
+      await persistClients();
+      renderClientList();
+      return ref.id;
+    }
+  } catch (e) {
+    console.warn('saveClientToFirestore', e);
+    showToast('Error en sincronización Firestore', 'error');
+    return null;
+  }
+}
+
+async function deleteClientFromFirestore(fsId) {
+  if (!firestoreDb || !fsId) return;
+  try {
+    await firestoreDb.collection('usuarios').doc(fsId).delete();
+  } catch (e) {
+    console.warn('deleteClientFromFirestore', e);
+  }
+}
+
+/* ============================================================
+   UI Functions & Events
+============================================================ */
+function escapeHtml(s) {
+  return (s || '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+function updateDbStatus() {
+  const dbEl = document.getElementById('dbStatus');
+  const countEl = document.getElementById('clientCount');
+  if (dbEl) dbEl.textContent = firestoreConnected ? `Base de datos: Conectada` : 'Base de datos: Offline (local)';
+  if (countEl) countEl.textContent = `Clientes: ${clients.length}`;
+}
+
+function showToast(msg, type = '') {
+  const t = document.getElementById('toast');
+  if (!t) return;
+  t.className = 'toast show' + (type ? ' ' + type : '');
+  t.innerHTML = msg;
+  clearTimeout(showToast._t);
+  showToast._t = setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+function renderClientList() {
+  const list = document.getElementById('clientList');
+  if (!list) return;
+  const q = (document.getElementById('clientSearch').value || '').toLowerCase();
+  const filtered = clients.filter(c => (c.name || '').toLowerCase().includes(q) || (c.rfc || '').toLowerCase().includes(q));
+
+  if (filtered.length === 0) {
+    list.innerHTML = `<p class="empty-hint">Aún no tienes clientes guardados.</p>`;
+    return;
+  }
+
+  list.innerHTML = filtered.map(c => `
+    <div class="client-card" data-id="${c.id}">
+      <div>
+        <div class="cc-name">${escapeHtml(c.name)}</div>
+        <div class="cc-detail">
+          ${c.rfc ? 'RFC: ' + escapeHtml(c.rfc) + '<br>' : ''}
+          ${c.phone ? 'Tel: ' + escapeHtml(c.phone) + ' ' : ''}${c.email ? 'Email: ' + escapeHtml(c.email) : ''}
+          ${c.address ? '<br>' + escapeHtml(c.address) : ''}
+        </div>
+      </div>
+      <div class="cc-actions">
+        <button class="btn btn-outline btn-sm" data-edit="${c.id}">Editar</button>
+        <button class="btn btn-danger btn-sm" data-del="${c.id}">Eliminar</button>
+      </div>
+    </div>
+  `).join('');
+
+  list.querySelectorAll('[data-edit]').forEach(btn => btn.addEventListener('click', () => startEditClient(btn.dataset.edit)));
+  list.querySelectorAll('[data-del]').forEach(btn => btn.addEventListener('click', () => handleDeleteClient(btn.dataset.del, btn)));
+}
+
+function startEditClient(id) {
+  const c = clients.find(cl => String(cl.id) === String(id));
+  if (!c) return;
+  editingClientId = c.id;
+  document.getElementById('cName').value = c.name || '';
+  document.getElementById('cRfc').value = c.rfc || '';
+  document.getElementById('cPhone').value = c.phone || '';
+  document.getElementById('cEmail').value = c.email || '';
+  document.getElementById('cAddress').value = c.address || '';
+  document.getElementById('clientFormTitle').textContent = 'Editar cliente';
+  document.getElementById('clientFormNum').textContent = 'Editar';
+  document.getElementById('cancelClientBtn').style.display = 'inline-flex';
+  document.getElementById('cName').focus();
+}
+
+function resetClientForm() {
+  editingClientId = null;
+  ['cName', 'cRfc', 'cPhone', 'cEmail', 'cAddress'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  document.getElementById('clientFormTitle').textContent = 'Nuevo cliente';
+  document.getElementById('clientFormNum').textContent = '+';
+  document.getElementById('cancelClientBtn').style.display = 'none';
+}
+
+async function handleDeleteClient(id, btnEl) {
+  if (deleteArmedId !== id) {
+    deleteArmedId = id;
+    btnEl.textContent = '¿Confirmar?';
+    setTimeout(() => {
+      if (deleteArmedId === id) {
+        deleteArmedId = null;
+        btnEl.textContent = 'Eliminar';
+      }
+    }, 3000);
+    return;
+  }
+  deleteArmedId = null;
+  const target = clients.find(c => String(c.id) === String(id));
+  if (target && target.fsId) {
+    await deleteClientFromFirestore(target.fsId);
+  }
+  clients = clients.filter(c => String(c.id) !== String(id));
+  await persistClients();
+  renderClientList();
+  updateDbStatus();
+  showToast('Cliente eliminado', 'success');
+}
+
+document.addEventListener('DOMContentLoaded', async () => {
+  const overlay = document.getElementById('loadingOverlay');
+  await loadAllClients();
+  renderClientList();
+  updateDbStatus();
+
+  initFirebase();
+  if (firestoreDb) {
+    await fetchFirestoreUsers();
+  }
+
+  if (overlay) overlay.style.display = 'none';
+
+  document.getElementById('saveClientBtn').addEventListener('click', async () => {
+    const name = document.getElementById('cName').value.trim();
+    if (!name) {
+      showToast('Ingresa al menos el nombre del cliente', 'error');
+      return;
+    }
+    const rfc = document.getElementById('cRfc').value.trim();
+    const phone = document.getElementById('cPhone').value.trim();
+    const email = document.getElementById('cEmail').value.trim();
+    const address = document.getElementById('cAddress').value.trim();
+
+    if (editingClientId) {
+      const idx = clients.findIndex(c => String(c.id) === String(editingClientId));
+      if (idx !== -1) {
+        clients[idx] = { ...clients[idx], name, rfc, phone, email, address };
+        await persistClients();
+        if (firestoreConnected) {
+          await saveClientToFirestore(clients[idx]);
+        }
+      }
+    } else {
+      const newClient = {
+        id: Date.now() + Math.floor(Math.random() * 9999),
+        name, rfc, phone, email, address
+      };
+      clients.push(newClient);
+      await persistClients();
+      if (firestoreConnected) {
+        await saveClientToFirestore(newClient);
+      }
+    }
+
+    resetClientForm();
+    renderClientList();
+    updateDbStatus();
+    showToast('Cliente guardado con éxito', 'success');
+  });
+
+  document.getElementById('cancelClientBtn').addEventListener('click', resetClientForm);
+  document.getElementById('clientSearch').addEventListener('input', renderClientList);
+
+  document.getElementById('refreshBtn')?.addEventListener('click', async () => {
+    const btn = document.getElementById('refreshBtn');
+    if (btn) btn.classList.add('spinning');
+    try {
+      await loadAllClients();
+      initFirebase();
+      if (firestoreDb) await fetchFirestoreUsers();
+      showToast('Datos de clientes sincronizados 🔄', 'success');
+    } catch(e) {
+      showToast('Modo sin conexión activo 📶', 'warn');
+    } finally {
+      if (btn) setTimeout(() => btn.classList.remove('spinning'), 600);
+    }
+  });
+});

@@ -1,38 +1,55 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Colección usuarios
+
+    // ─── Colección: usuarios ────────────────────────────────
     match /usuarios/{documento} {
-      // Permitir lectura para todos
-      allow read: if true;
-
-      // Permitir escritura para todos (desarrollo)
-      allow write: if true;
-
-      // Validar estructura de datos
-      allow create: if 
-        request.resource.data.keys().hasAll(['nombre', 'rfc']) &&
-        request.resource.data.size() == 2 &&
-        request.resource.data.nombre is string &&
-        request.resource.data.nombre.size() > 0 &&
-        request.resource.data.nombre.size() <= 255 &&
-        request.resource.data.rfc is string &&
-        request.resource.data.rfc.size() > 0 &&
-        request.resource.data.rfc.size() <= 20;
-
-      // Permitir actualización manteniendo estructura
-      allow update: if 
-        request.resource.data.keys().hasAll(['nombre', 'rfc']) &&
-        request.resource.data.size() == 2 &&
-        request.resource.data.nombre is string &&
-        request.resource.data.nombre.size() > 0 &&
-        request.resource.data.nombre.size() <= 255 &&
-        request.resource.data.rfc is string &&
-        request.resource.data.rfc.size() > 0 &&
-        request.resource.data.rfc.size() <= 20;
-
-      // Permitir delete para todos (desarrollo)
+      allow read:   if true;
       allow delete: if true;
+
+      // Crear: requiere nombre y rfc
+      allow create: if
+        request.resource.data.keys().hasAll(['nombre', 'rfc']) &&
+        request.resource.data.nombre is string &&
+        request.resource.data.nombre.size() > 0 &&
+        request.resource.data.nombre.size() <= 255 &&
+        request.resource.data.rfc is string &&
+        request.resource.data.rfc.size() <= 20;
+
+      // Actualizar: mismo requisito
+      allow update: if
+        request.resource.data.keys().hasAll(['nombre', 'rfc']) &&
+        request.resource.data.nombre is string &&
+        request.resource.data.nombre.size() > 0 &&
+        request.resource.data.nombre.size() <= 255 &&
+        request.resource.data.rfc is string &&
+        request.resource.data.rfc.size() <= 20;
+
+      // Escritura generica (set con merge) — cubre merge parcial
+      allow write: if true;
     }
+
+    // ─── Colección: tickets ─────────────────────────────────
+    match /tickets/{ticketId} {
+      allow read:   if true;
+      allow delete: if true;
+
+      // Crear: requiere folio y total como minimo
+      allow create: if
+        request.resource.data.keys().hasAll(['folio', 'total']) &&
+        request.resource.data.folio is number &&
+        request.resource.data.total is number;
+
+      // Actualizar: folio y total deben seguir presentes
+      allow update: if
+        request.resource.data.keys().hasAll(['folio', 'total']) &&
+        request.resource.data.folio is number &&
+        request.resource.data.total is number;
+
+      // Escritura generica (set / set-merge) — permite merge parcial
+      allow write: if true;
+    }
+
   }
 }
+
