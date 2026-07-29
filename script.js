@@ -33,11 +33,18 @@ function pad6(num){ return String(num).padStart(6, '0'); }
 function fmt(val){ return `$${Number(val||0).toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2})}`; }
 function escapeHtml(s){ return (s||'').replace(/[&<>"']/g, c=> ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
+const TOAST_ICONS = {
+  success: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><path d="M8 12.5l2.5 2.5L16 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  error: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><path d="M12 7.5v6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="16.5" r="1" fill="currentColor"/></svg>',
+  warn: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 4.5l8.5 14.7H3.5L12 4.5z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M12 10.2v3.8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="16.7" r="1" fill="currentColor"/></svg>',
+  info: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M17.5 19a4.5 4.5 0 0 0 0-9 6 6 0 0 0-11.6-1.7A4.5 4.5 0 0 0 6.5 19h11z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+};
 function showToast(msg, type=''){
   const t = document.getElementById('toast');
   if(!t) return;
   t.className = 'toast show' + (type ? ' '+type : '');
-  t.innerHTML = msg;
+  const icon = TOAST_ICONS[type] || '';
+  t.innerHTML = icon ? `<span class="toast-icon">${icon}</span><span>${msg}</span>` : msg;
   clearTimeout(showToast._t);
   showToast._t = setTimeout(()=> t.classList.remove('show'), 2800);
 }
@@ -116,9 +123,7 @@ function numeroALetrasES(num){
 }
 function amountInWords(total){
   const intPart = Math.floor(total);
-  const cents = Math.round((total - intPart) * 100);
-  const centsStr = String(cents).padStart(2, '0');
-  return `${numeroALetrasES(intPart)} PESOS ${centsStr}/100 M.N.`;
+  return `${numeroALetrasES(intPart)} PESOS`;
 }
 
 /* ============================================================
@@ -340,15 +345,25 @@ function renderQr(){
   const box = document.getElementById('qrBox');
   if(!box) return;
   box.innerHTML = '';
+  // Tamaño interno real disponible (contenedor menos el padding de la caja)
+  const inner = 72;
   try {
     new QRCode(box, {
       text: 'https://despacho-nunez-alvarez.devcenterx.workers.dev',
-      width: 80,
-      height: 80,
+      width: inner,
+      height: inner,
       colorDark: '#000000',
       colorLight: '#ffffff',
-      correctLevel: QRCode.CorrectLevel.M
+      correctLevel: QRCode.CorrectLevel.H
     });
+    // Forzar que el canvas/img generado llene la caja sin recortarse ni desalinearse
+    const el = box.querySelector('canvas, img');
+    if(el){
+      el.style.width = inner + 'px';
+      el.style.height = inner + 'px';
+      el.style.display = 'block';
+      el.style.imageRendering = 'pixelated';
+    }
   } catch(e) {
     box.innerHTML = '<img src="codigo-qr.png" style="width:100%;height:100%;object-fit:contain;">';
   }
@@ -366,6 +381,9 @@ function updateSheet(){
   const clientRfcVal  = document.getElementById('clientRfc')?.value  || '';
   if(document.getElementById('sheetClient')) document.getElementById('sheetClient').textContent = clientNameVal || '-';
   if(document.getElementById('sheetRfc')) document.getElementById('sheetRfc').textContent = clientRfcVal || '-';
+  const folioVal = pad6(_uploadedFolio || meta.nextFolio);
+  if(document.getElementById('sheetFolio')) document.getElementById('sheetFolio').textContent = folioVal;
+  if(document.getElementById('sheetPayMethod')) document.getElementById('sheetPayMethod').textContent = document.getElementById('payMethod')?.value || 'Contado';
 
   const docDateVal = document.getElementById('docDate')?.value;
   let dateStr = '';
@@ -377,17 +395,26 @@ function updateSheet(){
     dateStr = new Date().toLocaleDateString('es-MX', {day:'2-digit', month:'2-digit', year:'numeric'});
   }
 
-  if (document.getElementById('cfdiFechaEmision')) {
-    document.getElementById('cfdiFechaEmision').innerHTML = `
-      <div style="padding:4px 6px; text-align:center; border-bottom:1px solid #000;">
-        <div style="font-weight:bold; font-size:8px; color:#000; letter-spacing:.04em;">FECHA</div>
-        <div style="font-size:10px; font-weight:700; margin-top:1px;">${dateStr}</div>
-      </div>
-      <div style="padding:4px 6px; text-align:center;">
-        <div style="font-weight:bold; font-size:8px; color:#000; letter-spacing:.04em;">HORA</div>
-        <div style="font-size:10px; font-weight:700; margin-top:1px;">${new Date().toLocaleTimeString('es-MX', {hour:'2-digit', minute:'2-digit'})}</div>
-      </div>`;
+  const docTimeVal = document.getElementById('docTime')?.value;
+  let timeStr = '';
+  if (docTimeVal) {
+    const parts = docTimeVal.split(':');
+    if (parts.length >= 2) {
+      let h = parseInt(parts[0], 10);
+      const m = parts[1];
+      const ampm = h >= 12 ? 'p.m.' : 'a.m.';
+      h = h % 12;
+      if (h === 0) h = 12;
+      timeStr = `${String(h).padStart(2, '0')}:${m} ${ampm}`;
+    } else {
+      timeStr = docTimeVal;
+    }
+  } else {
+    timeStr = new Date().toLocaleTimeString('es-MX', {hour:'2-digit', minute:'2-digit'});
   }
+
+  if(document.getElementById('sheetFecha')) document.getElementById('sheetFecha').textContent = dateStr;
+  if(document.getElementById('sheetHora')) document.getElementById('sheetHora').textContent = timeStr;
 
   // Mostrar el ID del ticket en curso
   const docIdEl = document.getElementById('sheetDocId');
@@ -397,19 +424,57 @@ function updateSheet(){
   if(sheetItems){
     const ROW_H = '26px'; // altura fija para TODAS las filas (items + relleno)
     const TOTAL_ROWS = 8;  // total de filas visibles siempre
+    const showSubtotal = items.some(it => Number(it.qty) > 1);
+
+    const sheetThead = document.getElementById('sheetThead');
+    if(sheetThead){
+      sheetThead.innerHTML = showSubtotal ? `
+        <tr style="border-bottom:1px solid #000; background:#eaeaea;">
+          <th style="padding:4px 6px; text-align:left; border-right:1px solid #000; font-weight:bold; letter-spacing:.03em;">Descripción</th>
+          <th style="padding:4px 6px; text-align:center; border-right:1px solid #000; width:45px; font-weight:bold;">Cant</th>
+          <th style="padding:4px 6px; text-align:right; border-right:1px solid #000; width:65px; font-weight:bold;">Precio</th>
+          <th style="padding:4px 6px; text-align:right; width:70px; font-weight:bold;">Subtotal</th>
+        </tr>
+      ` : `
+        <tr style="border-bottom:1px solid #000; background:#eaeaea;">
+          <th style="padding:4px 6px; text-align:left; border-right:1px solid #000; font-weight:bold; letter-spacing:.03em;">Descripción</th>
+          <th style="padding:4px 6px; text-align:center; border-right:1px solid #000; width:55px; font-weight:bold;">Cant</th>
+          <th style="padding:4px 6px; text-align:right; width:85px; font-weight:bold;">Precio</th>
+        </tr>
+      `;
+    }
 
     // Filas con productos reales
-    const itemRows = items.map(it=>`
-      <tr style="height:${ROW_H};">
-        <td style="height:${ROW_H}; padding:0 6px; border-right:1px solid #000; border-bottom:1px dashed #bbb; vertical-align:middle; overflow:hidden; white-space:nowrap; text-overflow:ellipsis;">${escapeHtml(it.name||'-')}</td>
-        <td style="height:${ROW_H}; padding:0 6px; text-align:center; border-right:1px solid #000; border-bottom:1px dashed #bbb; vertical-align:middle;">${it.qty}</td>
-        <td style="height:${ROW_H}; padding:0 6px; text-align:right; border-bottom:1px dashed #bbb; vertical-align:middle;">${fmt(it.price)}</td>
-      </tr>
-    `).join('');
+    const itemRows = items.map(it => {
+      const q = Number(it.qty) || 1;
+      const p = Number(it.price) || 0;
+      const sub = q * p;
+      return showSubtotal ? `
+        <tr style="height:${ROW_H};">
+          <td style="height:${ROW_H}; padding:0 6px; border-right:1px solid #000; border-bottom:1px dashed #bbb; vertical-align:middle; overflow:hidden; white-space:nowrap; text-overflow:ellipsis;">${escapeHtml(it.name||'-')}</td>
+          <td style="height:${ROW_H}; padding:0 6px; text-align:center; border-right:1px solid #000; border-bottom:1px dashed #bbb; vertical-align:middle;">${it.qty}</td>
+          <td style="height:${ROW_H}; padding:0 6px; text-align:right; border-right:1px solid #000; border-bottom:1px dashed #bbb; vertical-align:middle;">${fmt(p)}</td>
+          <td style="height:${ROW_H}; padding:0 6px; text-align:right; border-bottom:1px dashed #bbb; vertical-align:middle;">${fmt(sub)}</td>
+        </tr>
+      ` : `
+        <tr style="height:${ROW_H};">
+          <td style="height:${ROW_H}; padding:0 6px; border-right:1px solid #000; border-bottom:1px dashed #bbb; vertical-align:middle; overflow:hidden; white-space:nowrap; text-overflow:ellipsis;">${escapeHtml(it.name||'-')}</td>
+          <td style="height:${ROW_H}; padding:0 6px; text-align:center; border-right:1px solid #000; border-bottom:1px dashed #bbb; vertical-align:middle;">${it.qty}</td>
+          <td style="height:${ROW_H}; padding:0 6px; text-align:right; border-bottom:1px dashed #bbb; vertical-align:middle;">${fmt(p)}</td>
+        </tr>
+      `;
+    }).join('');
 
     // Filas vacías de relleno — siempre para completar TOTAL_ROWS
     const fillerCount = Math.max(0, TOTAL_ROWS - items.length);
-    const fillerRows = Array.from({length: fillerCount}, ()=>`
+    const fillerRows = Array.from({length: fillerCount}, ()=> showSubtotal ? `
+      <tr style="height:${ROW_H};">
+        <td style="height:${ROW_H}; border-right:1px solid #000; border-bottom:1px dashed #ccc;"></td>
+        <td style="height:${ROW_H}; border-right:1px solid #000; border-bottom:1px dashed #ccc;"></td>
+        <td style="height:${ROW_H}; border-right:1px solid #000; border-bottom:1px dashed #ccc;"></td>
+        <td style="height:${ROW_H}; border-bottom:1px dashed #ccc;"></td>
+      </tr>
+    ` : `
       <tr style="height:${ROW_H};">
         <td style="height:${ROW_H}; border-right:1px solid #000; border-bottom:1px dashed #ccc;"></td>
         <td style="height:${ROW_H}; border-right:1px solid #000; border-bottom:1px dashed #ccc;"></td>
@@ -460,9 +525,9 @@ function renderHistory(){
     `).join('');
 
     const isSynced = h.fsId ? true : false;
-    const syncBadge = isSynced 
-      ? `<span class="history-badge-sync online">☁️ Nube</span>`
-      : `<span class="history-badge-sync offline">📶 Dispositivo</span>`;
+    const syncBadge = isSynced
+      ? `<span class="history-badge-sync online"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M17.5 19a4.5 4.5 0 0 0 0-9 6 6 0 0 0-11.6-1.7A4.5 4.5 0 0 0 6.5 19h11z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Nube</span>`
+      : `<span class="history-badge-sync offline"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="4" y="2" width="16" height="20" rx="2" stroke="currentColor" stroke-width="2"/><line x1="4" y1="17" x2="20" y2="17" stroke="currentColor" stroke-width="2"/></svg> Dispositivo</span>`;
 
     return `
       <div class="history-item-container" data-id="${h.id}">
@@ -477,7 +542,7 @@ function renderHistory(){
           </div>
           <div style="display:flex; align-items:center; gap:10px;">
             <div class="hi-total">$ ${h.total.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}</div>
-            <button class="btn btn-outline btn-sm" type="button">👁️ Ver detalle</button>
+            <button class="btn btn-outline btn-sm" type="button"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="margin-right:4px; vertical-align:-2px;"><path d="M1.5 12S5 5 12 5s10.5 7 10.5 7-3.5 7-10.5 7S1.5 12 1.5 12z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.8"/></svg>Ver detalle</button>
           </div>
         </div>
         <div class="history-details" id="details-${h.id}">
@@ -536,17 +601,6 @@ async function handleDeleteTicket(ticketId){
 /* ============================================================
    Clients & Select Sync
 ============================================================ */
-function renderClientSelect(){
-  const sel = document.getElementById('clientSelect');
-  if(!sel) return;
-  const prevVal = sel.value;
-  const statusText = firestoreConnected ? `Base de datos conectada (${clients.length})` : 'Modo offline (local)';
-  sel.innerHTML = `<option value="__status__" disabled>${statusText}</option>` +
-    `<option value="">${I18N.newClientOpt}</option>` +
-    clients.map(c=>`<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('');
-  if([...sel.options].some(o=>o.value===prevVal)) sel.value = prevVal;
-}
-
 function updateDbStatus(){
   const el = document.getElementById('dbStatus');
   const cnt = document.getElementById('clientCount');
@@ -554,13 +608,96 @@ function updateDbStatus(){
   if(cnt) cnt.textContent = `Clientes: ${clients.length}`;
 }
 
-document.getElementById('clientSelect')?.addEventListener('change', e=>{
-  const c = clients.find(cl=> String(cl.id)===e.target.value);
-  if(c){
-    if(document.getElementById('clientName')) document.getElementById('clientName').value = c.name || '';
-    if(document.getElementById('clientRfc')) document.getElementById('clientRfc').value = c.rfc || '';
+function renderClientSelect(){
+  // Si el buscador está abierto, refresca los resultados con el texto actual
+  const input = document.getElementById('clientSearchInput');
+  const dropdown = document.getElementById('clientDropdown');
+  if(dropdown && dropdown.classList.contains('open') && input){
+    renderClientDropdown(input.value);
   }
+}
+
+function normalizeForSearch(s){
+  return (s||'').toString().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+}
+
+function renderClientDropdown(query){
+  const dropdown = document.getElementById('clientDropdown');
+  if(!dropdown) return;
+  const q = normalizeForSearch(query).trim();
+
+  const matches = q
+    ? clients.filter(c => normalizeForSearch(c.name).includes(q) || normalizeForSearch(c.rfc).includes(q))
+    : clients;
+
+  const list = matches.slice(0, 30);
+
+  let html = '';
+  html += `<div class="client-dd-item client-dd-new" data-action="new">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><line x1="12" y1="5" x2="12" y2="19" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="5" y1="12" x2="19" y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      <span>Nuevo cliente (llenar manualmente)</span>
+    </div>`;
+
+  if(list.length === 0){
+    html += `<div class="client-dd-empty">${clients.length===0 ? 'Aún no tienes clientes guardados.' : 'Sin coincidencias para tu búsqueda.'}</div>`;
+  } else {
+    html += list.map(c => `
+      <div class="client-dd-item" data-id="${c.id}">
+        <span class="client-dd-name">${escapeHtml(c.name || 'Sin nombre')}</span>
+        ${c.rfc ? `<span class="client-dd-rfc">${escapeHtml(c.rfc)}</span>` : ''}
+      </div>
+    `).join('');
+  }
+
+  dropdown.innerHTML = html;
+  dropdown.classList.add('open');
+}
+
+function closeClientDropdown(){
+  const dropdown = document.getElementById('clientDropdown');
+  if(dropdown) dropdown.classList.remove('open');
+}
+
+const clientSearchInputEl = document.getElementById('clientSearchInput');
+if(clientSearchInputEl){
+  clientSearchInputEl.addEventListener('focus', () => {
+    renderClientDropdown(clientSearchInputEl.value);
+  });
+  clientSearchInputEl.addEventListener('input', () => {
+    document.getElementById('clientSearchClear').style.display = clientSearchInputEl.value ? 'flex' : 'none';
+    renderClientDropdown(clientSearchInputEl.value);
+  });
+}
+
+document.getElementById('clientSearchClear')?.addEventListener('click', () => {
+  clientSearchInputEl.value = '';
+  document.getElementById('clientSearchClear').style.display = 'none';
+  renderClientDropdown('');
+  clientSearchInputEl.focus();
+});
+
+document.getElementById('clientDropdown')?.addEventListener('click', (e) => {
+  const item = e.target.closest('.client-dd-item');
+  if(!item) return;
+  if(item.dataset.action === 'new'){
+    if(document.getElementById('clientName')) document.getElementById('clientName').value = '';
+    if(document.getElementById('clientRfc')) document.getElementById('clientRfc').value = '';
+    clientSearchInputEl.value = '';
+  } else {
+    const c = clients.find(cl => String(cl.id) === item.dataset.id);
+    if(c){
+      if(document.getElementById('clientName')) document.getElementById('clientName').value = c.name || '';
+      if(document.getElementById('clientRfc')) document.getElementById('clientRfc').value = c.rfc || '';
+      clientSearchInputEl.value = c.name || '';
+    }
+  }
+  closeClientDropdown();
   updateSheet();
+});
+
+document.addEventListener('click', (e) => {
+  const wrap = document.querySelector('.client-search-field');
+  if(wrap && !wrap.contains(e.target)) closeClientDropdown();
 });
 
 /* ============================================================
@@ -583,7 +720,9 @@ function restoreBtn(btn){
   if(btn.dataset.originalText) btn.innerHTML = btn.dataset.originalText;
 }
 
-async function saveTicketRecord(){
+async function saveTicketRecord(opts){
+  const options = opts || {};
+  const localOnly = !!options.localOnly;
   if(items.length === 0){
     showToast(I18N.needItems,'error');
     return null;
@@ -595,22 +734,25 @@ async function saveTicketRecord(){
   const ticket = {
     id: ticketId,
     folio,
-    brand: document.getElementById('brandName').value || 'Despacho A & N',
+    brand: 'Alvarez & Nuñez',
     client: document.getElementById('clientName').value,
     rfc: document.getElementById('clientRfc').value,
     total: t.total,
     date: createdAt,
     currencySymbol: '$',
     items: items.map(it=>({ name: it.name, qty: it.qty, price: it.price })),
-    createdAt
+    createdAt,
+    localOnly
   };
   ticketHistory.unshift(ticket);
-  meta.nextFolio = folio + 1;
+  if(!localOnly){
+    meta.nextFolio = folio + 1;
+    await persistMeta();
+  }
   await persistTickets();
-  await persistMeta();
 
   let uploadedCloud = false;
-  if(navigator.onLine && firestoreConnected){
+  if(!localOnly && navigator.onLine && firestoreConnected){
     try {
       const fsId = await saveTicketToFirestore(ticket);
       if(fsId){
@@ -639,7 +781,7 @@ function unlockActions(){
   const panel = document.getElementById('postUploadActions');
   if(panel){ panel.style.display = 'flex'; panel.classList.add('visible'); }
   // Remove lock from all action buttons
-  ['waBtn','pdfBtn','pngBtn'].forEach(id=>{
+  ['waBtn','pdfBtn','pngBtn','copyImgBtn'].forEach(id=>{
     const el = document.getElementById(id);
     if(el) el.classList.remove('action-locked');
   });
@@ -659,7 +801,7 @@ function lockActions(){
   // Hide post-upload panel completely
   const panel = document.getElementById('postUploadActions');
   if(panel){ panel.style.display = 'none'; panel.classList.remove('visible'); }
-  ['waBtn','pdfBtn','pngBtn'].forEach(id=>{
+  ['waBtn','pdfBtn','pngBtn','copyImgBtn'].forEach(id=>{
     const el = document.getElementById(id);
     if(el) el.classList.add('action-locked');
   });
@@ -683,7 +825,7 @@ function lockActions(){
 function onTicketChanged(){
   if(_isUploaded) lockActions();
 }
-['docType','docDate','payMethod','clientName','clientRfc','brandName','brandSub'].forEach(id=>{
+['docType','docDate','docTime','payMethod','clientName','clientRfc'].forEach(id=>{
   const el = document.getElementById(id);
   if(el){
     el.addEventListener('input', onTicketChanged);
@@ -693,7 +835,7 @@ function onTicketChanged(){
 
 async function syncPendingTickets(){
   if(!navigator.onLine || !firestoreDb) return;
-  const pending = ticketHistory.filter(t => !t.fsId);
+  const pending = ticketHistory.filter(t => !t.fsId && !t.localOnly);
   if(pending.length === 0) return;
   let count = 0;
   for(const t of pending){
@@ -706,12 +848,12 @@ async function syncPendingTickets(){
   if(count > 0){
     await persistTickets();
     renderHistory();
-    showToast(`☁️ ${count} ticket(s) sincronizados con la base de datos`, 'success');
+    showToast(`${count} ticket(s) sincronizados con la base de datos`, 'success');
   }
 }
 
 window.addEventListener('online', () => {
-  showToast('🌐 Conexión restaurada - Sincronizando...', 'info');
+  showToast('Conexión restaurada, sincronizando...', 'info');
   syncPendingTickets();
 });
 
@@ -723,7 +865,8 @@ async function doUpload(){
   if(banner) banner.classList.remove('show');
 
   try{
-    _uploadedCanvas = await captureSheet();
+    try{ _uploadedCanvas = await captureSheet(); }catch(e){ _uploadedCanvas = null; console.warn('captureSheet falló, se guardará solo el registro:', e); }
+
     const res = await saveTicketRecord();
     if(!res){
       restoreBtn(btn);
@@ -734,9 +877,9 @@ async function doUpload(){
     unlockActions();
 
     if(res.uploadedCloud){
-      showToast('Ticket subido a la base de datos ✅','success');
+      showToast('Ticket subido a la base de datos','success');
     } else {
-      showToast('Guardado en este dispositivo (Modo sin conexión) 📶','warn');
+      showToast('Guardado en este dispositivo (modo sin conexión)','warn');
       if(banner) banner.classList.add('show');
     }
   }catch(err){
@@ -748,6 +891,75 @@ async function doUpload(){
 }
 
 document.getElementById('uploadBtn')?.addEventListener('click', doUpload);
+
+/* ============================================================
+   Carga Local (guardar sin depender de la nube en el momento)
+============================================================ */
+function toggleLocalOptions(){
+  const panel = document.getElementById('localLoadOptions');
+  if(!panel) return;
+  const isVisible = panel.classList.contains('visible');
+  if(isVisible){
+    panel.style.display = 'none';
+    panel.classList.remove('visible');
+  } else {
+    panel.style.display = 'flex';
+    panel.classList.add('visible');
+  }
+}
+document.getElementById('localLoadBtn')?.addEventListener('click', toggleLocalOptions);
+
+async function saveLocalOnly(){
+  if(items.length===0){ showToast(I18N.needItems,'error'); return; }
+  const btn = document.getElementById('localOnlyBtn');
+  setBtnLoading(btn, 'Guardando…');
+  try{
+    try{ _uploadedCanvas = await captureSheet(); }catch(e){ _uploadedCanvas = null; console.warn('captureSheet falló, se guardará solo el registro:', e); }
+
+    const res = await saveTicketRecord({ localOnly:true });
+    if(!res) return;
+    _uploadedFolio = res.folio;
+    _isUploaded = true;
+    unlockActions();
+    toggleLocalOptions();
+    showToast('Guardado solo en este dispositivo','warn');
+  }catch(err){
+    console.error(err);
+    showToast(I18N.errorExport,'error');
+  }finally{
+    restoreBtn(btn);
+  }
+}
+document.getElementById('localOnlyBtn')?.addEventListener('click', saveLocalOnly);
+
+async function saveQueueForLater(){
+  if(items.length===0){ showToast(I18N.needItems,'error'); return; }
+  const btn = document.getElementById('localQueueBtn');
+  setBtnLoading(btn, 'Guardando…');
+  try{
+    try{ _uploadedCanvas = await captureSheet(); }catch(e){ _uploadedCanvas = null; console.warn('captureSheet falló, se guardará solo el registro:', e); }
+
+    const res = await saveTicketRecord({ localOnly:false });
+    if(!res) return;
+    _uploadedFolio = res.folio;
+    _isUploaded = true;
+    unlockActions();
+    toggleLocalOptions();
+    if(res.uploadedCloud){
+      showToast('Ya había internet, ticket subido a la base de datos','success');
+    } else {
+      showToast('Guardado en este dispositivo, se subirá solo cuando haya internet','warn');
+      const banner = document.getElementById('offlineBanner');
+      if(banner) banner.classList.add('show');
+    }
+  }catch(err){
+    console.error(err);
+    showToast(I18N.errorExport,'error');
+  }finally{
+    restoreBtn(btn);
+  }
+}
+document.getElementById('localQueueBtn')?.addEventListener('click', saveQueueForLater);
 
 document.getElementById('pdfBtn')?.addEventListener('click', async (e)=>{
   const btn = e.currentTarget;
@@ -792,9 +1004,42 @@ document.getElementById('pngBtn')?.addEventListener('click', async (e)=>{
   }
 });
 
+document.getElementById('copyImgBtn')?.addEventListener('click', async (e)=>{
+  const btn = e.currentTarget;
+  setBtnLoading(btn, 'Copiando imagen...');
+  try{
+    const canvas = _uploadedCanvas || await captureSheet();
+    canvas.toBlob(async (blob) => {
+      if(!blob){
+        restoreBtn(btn);
+        showToast('Error al generar la imagen', 'error');
+        return;
+      }
+      try {
+        if(navigator.clipboard && navigator.clipboard.write){
+          const item = new ClipboardItem({ 'image/png': blob });
+          await navigator.clipboard.write([item]);
+          showToast('Imagen copiada al portapapeles', 'success');
+        } else {
+          showToast('Tu navegador no soporta copiar imágenes al portapapeles', 'error');
+        }
+      } catch(clipErr) {
+        console.error(clipErr);
+        showToast('No se pudo copiar la imagen al portapapeles', 'error');
+      } finally {
+        restoreBtn(btn);
+      }
+    }, 'image/png');
+  }catch(err){
+    console.error(err);
+    showToast(I18N.errorExport,'error');
+    restoreBtn(btn);
+  }
+});
+
 document.getElementById('waBtn')?.addEventListener('click', async ()=>{
   const t = computeTotals();
-  const brand = document.getElementById('brandName').value || 'Mi marca';
+  const brand = 'Alvarez & Nuñez';
   const client = document.getElementById('clientName').value;
   let text = `*${brand}*\n`;
   if(client) text += `${I18N.client}: ${client}\n`;
@@ -842,7 +1087,6 @@ function makeCardsCollapsible(){
       title.appendChild(caret);
     }
     title.addEventListener('click', ()=>{ card.classList.toggle('collapsed'); });
-    if(title.textContent.includes('Marca')) card.classList.add('collapsed');
   });
 }
 
@@ -854,6 +1098,7 @@ function setupMobileUX(){
   const mu = document.getElementById('mobileUpload'); if(mu) mu.addEventListener('click', ()=> document.getElementById('uploadBtn').click());
   const mp = document.getElementById('mobilePdf'); if(mp) mp.addEventListener('click', ()=> document.getElementById('pdfBtn').click());
   const mg = document.getElementById('mobilePng'); if(mg) mg.addEventListener('click', ()=> document.getElementById('pngBtn').click());
+  const mc = document.getElementById('mobileCopy'); if(mc) mc.addEventListener('click', ()=> document.getElementById('copyImgBtn').click());
 
   function reorder(){
     const layout = document.querySelector('.layout');
@@ -870,6 +1115,12 @@ function setupMobileUX(){
 ============================================================ */
 (async function init(){
   if(document.getElementById('docDate')) document.getElementById('docDate').value = new Date().toISOString().slice(0,10);
+  if(document.getElementById('docTime')){
+    const now = new Date();
+    const hh = String(now.getHours()).padStart(2,'0');
+    const mm = String(now.getMinutes()).padStart(2,'0');
+    document.getElementById('docTime').value = `${hh}:${mm}`;
+  }
   
   // 1. Load local data for tickets and clients instantly
   await loadAllData();
@@ -887,11 +1138,8 @@ function setupMobileUX(){
   }
 
   // 3. UI setup & initial rendering
-  if(document.getElementById('brandName')) document.getElementById('brandName').value = '';
   if(document.getElementById('docType')) document.getElementById('docType').value = 'RECIBO DE PAGO';
   logoDataUrl = 'baner.jpeg';
-
-  addItem('Playera personalizada', 1, 250);
 
   try{ makeCardsCollapsible(); }catch(e){}
   try{ setupMobileUX(); }catch(e){}
@@ -916,20 +1164,12 @@ function setupMobileUX(){
     }
   });
 
-  ['docType','docDate','payMethod','clientName','clientRfc','brandName','brandSub'].forEach(id=>{
+  ['docType','docDate','docTime','payMethod','clientName','clientRfc'].forEach(id=>{
     const el = document.getElementById(id);
     if(el){
       el.addEventListener('input', updateSheet);
       el.addEventListener('change', updateSheet);
     }
-  });
-
-  document.getElementById('logoFile')?.addEventListener('change', e=>{
-    const file = e.target.files[0];
-    if(!file) return;
-    const reader = new FileReader();
-    reader.onload = ev=>{ logoDataUrl = ev.target.result; updateSheet(); };
-    reader.readAsDataURL(file);
   });
 
   document.getElementById('refreshBtn')?.addEventListener('click', async () => {
@@ -939,9 +1179,9 @@ function setupMobileUX(){
       await loadAllData();
       if(typeof initFirebase === 'function') initFirebase();
       await Promise.all([fetchFirestoreUsers(), fetchFirestoreTickets(), syncPendingTickets()]);
-      showToast('Datos sincronizados con éxito 🔄', 'success');
+      showToast('Datos sincronizados con éxito', 'success');
     } catch(e) {
-      showToast('Modo sin conexión activo 📶', 'warn');
+      showToast('Modo sin conexión activo', 'warn');
     } finally {
       if(btn) setTimeout(() => btn.classList.remove('spinning'), 600);
     }

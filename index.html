@@ -11,7 +11,7 @@
   
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script src="vendor/qrcode.min.js"></script>
   <!-- Firebase (compat) for simple Firestore usage -->
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
@@ -68,30 +68,19 @@
             <div class="section-title"><span class="num">1</span><span>Documento</span></div>
             <div class="row3">
               <div class="field">
-                <label>Tipo de documento</label>
-                <input type="text" id="docType" placeholder="Cotización">
-              </div>
-              <div class="field">
                 <label>Fecha</label>
                 <input type="date" id="docDate">
               </div>
               <div class="field">
-                <label>Estilo de ticket</label>
-                <div class="style-buttons" style="display:flex; gap:8px;">
-                  <button type="button" class="btn btn-outline btn-sm style-btn active" data-style="basic">Normal</button>
-                  <button type="button" class="btn btn-outline btn-sm style-btn" data-style="modern">Moderno</button>
-                </div>
-                <select id="ticketStyle" class="mini" style="display:none;">
-                  <option value="basic">Normal</option>
-                  <option value="modern">Moderno</option>
-                </select>
+                <label>Hora</label>
+                <input type="time" id="docTime">
               </div>
               <div class="field">
                 <label>Método de pago</label>
                 <select id="payMethod">
-                  <option>Contado</option>
+                  <option selected>Efectivo</option>
                   <option>Transferencia</option>
-                  <option>Efectivo</option>
+                  <option>Contado</option>
                   <option>Tarjeta</option>
                 </select>
               </div>
@@ -100,9 +89,16 @@
 
           <div class="card">
             <div class="section-title"><span class="num">2</span><span>Cliente</span></div>
-            <div class="field">
-              <label>Cliente guardado</label>
-              <select id="clientSelect"></select>
+            <div class="field client-search-field">
+              <label>Buscar cliente guardado</label>
+              <div class="client-search-box">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="client-search-ic"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><line x1="21" y1="21" x2="16.65" y2="16.65" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                <input type="text" id="clientSearchInput" placeholder="Escribe un nombre o RFC…" autocomplete="off">
+                <button type="button" id="clientSearchClear" class="client-search-clear" title="Limpiar" style="display:none;">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><line x1="18" y1="6" x2="6" y2="18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="6" y1="6" x2="18" y2="18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                </button>
+              </div>
+              <div class="client-dropdown" id="clientDropdown"></div>
             </div>
             <div class="row2">
               <div class="field">
@@ -117,25 +113,7 @@
           </div>
 
           <div class="card">
-            <div class="section-title"><span class="num">3</span><span>Marca</span></div>
-            <div class="field">
-              <label>Nombre de tu marca</label>
-              <input type="text" id="brandName" placeholder="Limited MX">
-            </div>
-            <div class="row2">
-              <div class="field">
-                <label>Eslogan / giro (opcional)</label>
-                <input type="text" id="brandSub" placeholder="">
-              </div>
-              <div class="field">
-                <label>Logo (opcional)</label>
-                <input type="file" id="logoFile" accept="image/*">
-              </div>
-            </div>
-          </div>
-
-          <div class="card">
-            <div class="section-title"><span class="num">4</span><span>Productos</span></div>
+            <div class="section-title"><span class="num">3</span><span>Productos</span></div>
             <table class="items">
               <thead>
                 <tr>
@@ -183,25 +161,49 @@
                 </div>
               </div>
 
-              <!-- CLIENTE + FECHA -->
-              <div style="display:flex; justify-content:space-between; align-items:stretch; margin-bottom:8px; gap:5px;">
-                <div style="flex:1; border:1px solid #000; border-radius:3px; padding:5px; font-size:9px;">
-                  <div style="text-align:center; background:#eaeaea; border-bottom:1px solid #000; margin:-5px -5px 5px -5px; font-weight:bold; padding:3px; letter-spacing:.04em;">DATOS DEL CLIENTE</div>
-                  <table style="width:100%; border-collapse:collapse; font-size:9px;">
-                    <tr><td style="width:55px; font-weight:bold; padding:2px 0;">Nombre :</td><td id="sheetClient" style="padding:2px 0;">-</td></tr>
-                    <tr><td style="font-weight:bold; padding:2px 0;">Rfc :</td><td id="sheetRfc" style="padding:2px 0;">-</td></tr>
+              <!-- CLIENTE + COMPROBANTE -->
+              <div style="display:flex; justify-content:space-between; align-items:stretch; margin-bottom:8px; gap:6px;">
+                <div style="flex:1; border:1px solid #000; border-radius:3px; overflow:hidden; font-size:9px; display:flex; flex-direction:column;">
+                  <div style="background:#eaeaea; border-bottom:1px solid #000; text-align:center; font-weight:bold; padding:3px; letter-spacing:.04em;">DATOS DEL CLIENTE</div>
+                  <table style="width:100%; border-collapse:collapse; font-size:9px; flex:1;">
+                    <tr style="border-bottom:1px solid #eee;">
+                      <td style="font-weight:bold; padding:4px 6px; width:1%; white-space:nowrap; color:#111;">Nombre :</td>
+                      <td id="sheetClient" style="padding:4px 6px;">-</td>
+                    </tr>
+                    <tr style="border-bottom:1px solid #eee;">
+                      <td style="font-weight:bold; padding:4px 6px; width:1%; white-space:nowrap; color:#111;">RFC :</td>
+                      <td id="sheetRfc" style="padding:4px 6px;">-</td>
+                    </tr>
+                    <tr>
+                      <td style="font-weight:bold; padding:4px 6px; width:1%; white-space:nowrap; color:#111;">Método de pago :</td>
+                      <td id="sheetPayMethod" style="padding:4px 6px;">Contado</td>
+                    </tr>
                   </table>
                 </div>
-                <div style="width:160px; border:1px solid #000; border-radius:3px; font-size:9px;">
-                  <div style="background:#eaeaea; border-bottom:1px solid #000; text-align:center; font-weight:bold; padding:3px; letter-spacing:.04em;">Fecha de Emisión</div>
-                  <div id="cfdiFechaEmision" style="padding:0; text-align:center;"></div>
+
+                <div style="width:170px; border:1px solid #000; border-radius:3px; overflow:hidden; font-size:9px; display:flex; flex-direction:column;">
+                  <div style="background:#eaeaea; border-bottom:1px solid #000; text-align:center; font-weight:bold; padding:3px; letter-spacing:.04em;">DATOS DEL COMPROBANTE</div>
+                  <table style="width:100%; border-collapse:collapse; font-size:9px; flex:1;">
+                    <tr style="border-bottom:1px solid #eee;">
+                      <td style="font-weight:bold; padding:4px 6px; width:1%; white-space:nowrap; color:#111;">Folio :</td>
+                      <td id="sheetFolio" style="padding:4px 6px; font-weight:800; font-size:9.5px; color:#111;">-</td>
+                    </tr>
+                    <tr style="border-bottom:1px solid #eee;">
+                      <td style="font-weight:bold; padding:4px 6px; width:1%; white-space:nowrap; color:#111;">Fecha :</td>
+                      <td id="sheetFecha" style="padding:4px 6px; font-weight:600;">-</td>
+                    </tr>
+                    <tr>
+                      <td style="font-weight:bold; padding:4px 6px; width:1%; white-space:nowrap; color:#111;">Hora :</td>
+                      <td id="sheetHora" style="padding:4px 6px; font-weight:600;">-</td>
+                    </tr>
+                  </table>
                 </div>
               </div>
 
               <!-- PRODUCTOS -->
               <div style="border:1px solid #000; border-radius:3px; overflow:hidden; margin-bottom:8px; min-height:220px; display:flex; flex-direction:column; background:#fff;">
                 <table class="cfdi-table" style="width:100%; border-collapse:collapse; font-size:9px; flex:1;">
-                  <thead>
+                  <thead id="sheetThead">
                     <tr style="border-bottom:1px solid #000; background:#eaeaea;">
                       <th style="padding:4px 6px; text-align:left; border-right:1px solid #000; font-weight:bold; letter-spacing:.03em;">Descripción</th>
                       <th style="padding:4px 6px; text-align:center; border-right:1px solid #000; width:55px; font-weight:bold;">Cant</th>
@@ -216,7 +218,7 @@
               <div style="display:flex; justify-content:space-between; align-items:stretch; border:1px solid #000; border-radius:3px; overflow:hidden; margin-bottom:8px; font-size:9px;">
                 <div style="flex:1; border-right:1px solid #000; display:flex; flex-direction:column;">
                   <div style="background:#eaeaea; border-bottom:1px solid #000; text-align:center; font-weight:bold; padding:3px; letter-spacing:.04em;">IMPORTE CON LETRA</div>
-                  <div id="sheetWords" style="padding:5px 6px; font-size:8.5px; font-weight:600;">DOSCIENTOS CINCUENTA PESOS 00/100 M.N.</div>
+                  <div id="sheetWords" style="padding:5px 6px; font-size:8.5px; font-weight:600;">DOSCIENTOS CINCUENTA PESOS</div>
                 </div>
                 <div style="width:190px; display:flex; flex-direction:column;">
                   <div style="background:#eaeaea; border-bottom:1px solid #000; text-align:center; font-weight:bold; padding:3px; letter-spacing:.04em;">TOTALES</div>
@@ -230,7 +232,7 @@
               <!-- QR + IDENTIFICADOR -->
               <div style="display:flex; gap:8px; margin-top:6px; align-items:flex-start;">
                 <div style="flex-shrink:0; border:1px solid #000;">
-                  <div id="qrBox" style="width:78px; height:78px;"></div>
+                  <div id="qrBox" class="qrbox" style="width:80px; height:80px; box-sizing:border-box; border:1px solid #000; border-radius:3px; background:#fff; padding:3px; display:flex; align-items:center; justify-content:center; overflow:hidden; flex-shrink:0;"></div>
                 </div>
                 <div style="flex:1; word-break:break-all; font-size:7px; color:#333; line-height:1.6;">
                   <div style="margin-bottom:4px;">
@@ -241,6 +243,9 @@
                     Documento generado con fines informativos. No constituye un comprobante fiscal digital (CFDI).
                   </div>
                   <div style="margin-top:6px; font-weight:900; font-size:8px; letter-spacing:.04em;">GRACIAS POR SU PREFERENCIA</div>
+                  <div style="margin-top:3px; font-size:7.5px; color:#333; line-height:1.5;">
+                    Tel. 3216880149 &nbsp;|&nbsp; Cel. 3211059105 &nbsp;|&nbsp; Correo: despachocontablenunez@gmail.com
+                  </div>
                 </div>
               </div>
             </div>
@@ -251,6 +256,22 @@
                 Subir ticket
               </button>
               <p class="upload-hint" id="uploadHint">Sube primero para habilitar las demás opciones</p>
+
+              <button class="btn btn-outline wide" id="localLoadBtn" type="button">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 3v12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M7 10l5 5 5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 19h16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                Cargar Localmente
+              </button>
+              <div class="post-upload-actions" id="localLoadOptions" style="display:none; width:100%; flex-direction:column; gap:8px;">
+                <button class="btn btn-outline wide" id="localOnlyBtn" type="button">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M8 12h8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+                  Guardar solo en este dispositivo
+                </button>
+                <button class="btn btn-primary wide" id="localQueueBtn" type="button">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M17.5 19a4.5 4.5 0 0 0 0-9 6 6 0 0 0-11.6-1.7A4.5 4.5 0 0 0 6.5 19h11z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                  Subir cuando haya internet
+                </button>
+              </div>
+
               <div class="post-upload-actions" id="postUploadActions" style="display:none; width:100%; display:none; flex-direction:column; gap:8px;">
                 <button class="btn btn-wa wide action-locked" id="waBtn">
                   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -263,6 +284,10 @@
                 <button class="btn btn-outline wide action-locked" id="pngBtn">
                   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="3" y="3" width="18" height="18" rx="2" ry="2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><circle cx="8.5" cy="8.5" r="1.5" fill="currentColor"/><polyline points="21 15 16 10 5 21" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
                   Descargar imagen (PNG)
+                </button>
+                <button class="btn btn-outline wide action-locked" id="copyImgBtn">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="9" y="9" width="13" height="13" rx="2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                  Copiar imagen al portapapeles
                 </button>
               </div>
             </div>
@@ -283,6 +308,10 @@
               <button class="btn btn-outline" id="mobilePng">
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" stroke-width="1.8"/><polyline points="21 15 16 10 5 21" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
                 PNG
+              </button>
+              <button class="btn btn-outline" id="mobileCopy">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><rect x="9" y="9" width="12" height="12" rx="2" stroke="currentColor" stroke-width="1.8"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v1" stroke="currentColor" stroke-width="1.8"/></svg>
+                Copiar
               </button>
             </div>
           </div>

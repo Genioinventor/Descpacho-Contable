@@ -150,11 +150,18 @@ function updateDbStatus() {
   if (countEl) countEl.textContent = `Clientes: ${clients.length}`;
 }
 
+const TOAST_ICONS = {
+  success: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><path d="M8 12.5l2.5 2.5L16 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  error: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><path d="M12 7.5v6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="16.5" r="1" fill="currentColor"/></svg>',
+  warn: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 4.5l8.5 14.7H3.5L12 4.5z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M12 10.2v3.8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="16.7" r="1" fill="currentColor"/></svg>',
+  info: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M17.5 19a4.5 4.5 0 0 0 0-9 6 6 0 0 0-11.6-1.7A4.5 4.5 0 0 0 6.5 19h11z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+};
 function showToast(msg, type = '') {
   const t = document.getElementById('toast');
   if (!t) return;
   t.className = 'toast show' + (type ? ' ' + type : '');
-  t.innerHTML = msg;
+  const icon = TOAST_ICONS[type] || '';
+  t.innerHTML = icon ? `<span class="toast-icon">${icon}</span><span>${msg}</span>` : msg;
   clearTimeout(showToast._t);
   showToast._t = setTimeout(() => t.classList.remove('show'), 2800);
 }
@@ -302,9 +309,9 @@ document.addEventListener('DOMContentLoaded', async () => {
       await loadAllClients();
       initFirebase();
       if (firestoreDb) await fetchFirestoreUsers();
-      showToast('Datos de clientes sincronizados 🔄', 'success');
+      showToast('Datos de clientes sincronizados', 'success');
     } catch(e) {
-      showToast('Modo sin conexión activo 📶', 'warn');
+      showToast('Modo sin conexión activo', 'warn');
     } finally {
       if (btn) setTimeout(() => btn.classList.remove('spinning'), 600);
     }
