@@ -319,6 +319,116 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('cancelClientBtn').addEventListener('click', resetClientForm);
   document.getElementById('clientSearch').addEventListener('input', renderClientList);
 
+  // --- JSON Import Logic ---
+  const importCard = document.getElementById('importCard');
+  document.getElementById('showImportBtn')?.addEventListener('click', () => {
+    importCard.style.display = 'block';
+    importCard.scrollIntoView({ behavior: 'smooth' });
+    document.getElementById('jsonInput').focus();
+  });
+
+  document.getElementById('closeImportBtn')?.addEventListener('click', () => {
+    importCard.style.display = 'none';
+    document.getElementById('jsonInput').value = '';
+  });
+
+  document.getElementById('processImportBtn')?.addEventListener('click', async () => {
+    const raw = document.getElementById('jsonInput').value.trim();
+    if (!raw) {
+      showToast('Pega el JSON para continuar', 'error');
+      return;
+    }
+
+    let data;
+    try {
+      data = JSON.parse(raw);
+    } catch (e) {
+      showToast('El formato JSON no es válido', 'error');
+      return;
+    }
+
+    if (!Array.isArray(data)) {
+      showToast('El JSON debe ser una lista [...]', 'error');
+      return;
+    }
+
+    const btn = document.getElementById('processImportBtn');
+    const oldText = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = 'Importando...';
+
+    let addedCount = 0;
+    const newClientsForFs = [];
+
+    data.forEach(item => {
+      const name = (item.nombre || item.name || '').trim();
+      const rfc = (item.rfc || '').trim();
+      if (!name) return;
+
+      // Duplicate check (by name and RFC)
+      const exists = clients.some(c =>
+        (c.name || '').toLowerCase() === name.toLowerCase() &&
+        (c.rfc || '').toLowerCase() === rfc.toLowerCase()
+      );
+
+      if (!exists) {
+        const nc = {
+          id: Date.now() + Math.floor(Math.random() * 999999),
+          name, rfc,
+          phone: (item.telefono || item.phone || '').trim(),
+          email: (item.correo || item.email || '').trim(),
+          address: (item.direccion || item.address || '').trim()
+        };
+        clients.push(nc);
+        newClientsForFs.push(nc);
+        addedCount++;
+      }
+    });
+
+    if (addedCount > 0) {
+      await persistClients();
+
+      // Sync with Firestore in batches if connected
+      if (firestoreConnected && firestoreDb && newClientsForFs.length > 0) {
+        try {
+          const batchSize = 400; // Firestore limit is 500
+          for (let i = 0; i < newClientsForFs.length; i += batchSize) {
+            const batch = firestoreDb.batch();
+            const chunk = newClientsForFs.slice(i, i + batchSize);
+
+            chunk.forEach(nc => {
+              const ref = firestoreDb.collection('usuarios').doc();
+              nc.fsId = ref.id;
+              batch.set(ref, {
+                nombre: nc.name,
+                rfc: nc.rfc,
+                telefono: nc.phone,
+                email: nc.email,
+                direccion: nc.address
+              });
+            });
+            await batch.commit();
+          }
+          await persistClients(); // Save updated fsIds
+        } catch (fsErr) {
+          console.warn('Batch sync failed', fsErr);
+          showToast('Guardado localmente, error al sincronizar nube', 'warn');
+        }
+      }
+
+      renderClientList();
+      updateDbStatus();
+      showToast(`Se importaron ${addedCount} clientes con éxito`, 'success');
+      importCard.style.display = 'none';
+      document.getElementById('jsonInput').value = '';
+    } else {
+      showToast('No se encontraron clientes nuevos para importar', 'info');
+    }
+
+    btn.disabled = false;
+    btn.textContent = oldText;
+  });
+
   document.getElementById('refreshBtn')?.addEventListener('click', async () => {
     const btn = document.getElementById('refreshBtn');
     if (btn) btn.classList.add('spinning');

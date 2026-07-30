@@ -52,10 +52,29 @@
   <main class="main">
     <section class="view active" id="view-clients">
       <div class="page-head">
-        <h2>Gestionar clientes</h2>
-        <p>Guarda tus clientes frecuentes para llenar tickets en segundos.</p>
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:12px;">
+          <div>
+            <h2>Gestionar clientes</h2>
+            <p>Guarda tus clientes frecuentes para llenar tickets en segundos.</p>
+          </div>
+          <button class="btn btn-outline btn-sm" id="showImportBtn">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="margin-right:4px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><polyline points="17 8 12 3 7 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><line x1="12" y1="3" x2="12" y2="15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Importar JSON
+          </button>
+        </div>
       </div>
       <div class="layout">
+        <div id="importCard" class="card" style="display:none; grid-column: 1 / -1; margin-bottom: 26px;">
+          <div class="section-title"><span class="num">↓</span><span>Importar lista de clientes (JSON)</span></div>
+          <div class="field">
+            <label>Pega aquí el texto JSON con la lista de clientes</label>
+            <textarea id="jsonInput" placeholder='[{"nombre":"EJEMPLO", "rfc":"RFC123"}, ...]' style="min-height: 160px; font-family: var(--font-mono); font-size: 12px;"></textarea>
+          </div>
+          <div class="btn-row">
+            <button class="btn btn-primary" id="processImportBtn">Procesar e importar</button>
+            <button class="btn btn-ghost" id="closeImportBtn">Cancelar</button>
+          </div>
+        </div>
         <div>
           <div class="card">
             <div class="section-title"><span class="num" id="clientFormNum">+</span><span id="clientFormTitle">Nuevo cliente</span></div>
