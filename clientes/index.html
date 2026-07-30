@@ -55,7 +55,7 @@
         <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:12px;">
           <div>
             <h2>Gestionar clientes</h2>
-            <p>Guarda tus clientes frecuentes para llenar tickets en segundos.</p>
+            <p>Historial, notas y estadísticas personalizadas.</p>
           </div>
           <button class="btn btn-outline btn-sm" id="showImportBtn">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="margin-right:4px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><polyline points="17 8 12 3 7 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><line x1="12" y1="3" x2="12" y2="15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -63,6 +63,22 @@
           </button>
         </div>
       </div>
+
+      <div class="stats-header" id="globalStats">
+        <div class="stat-card">
+          <div class="stat-val" id="totalClientsVal">0</div>
+          <div class="stat-label">Clientes registrados</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-val" id="totalTicketsVal">0</div>
+          <div class="stat-label">Tickets generados</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-val" id="totalRevenueVal">$0.00</div>
+          <div class="stat-label">Ingresos totales</div>
+        </div>
+      </div>
+
       <div class="layout">
         <div id="importCard" class="card" style="display:none; grid-column: 1 / -1; margin-bottom: 26px;">
           <div class="section-title"><span class="num">↓</span><span>Importar lista de clientes (JSON)</span></div>
@@ -97,8 +113,8 @@
               <input type="email" id="cEmail" placeholder="">
             </div>
             <div class="field">
-              <label>Dirección</label>
-              <textarea id="cAddress" placeholder=""></textarea>
+              <label>Notas internas</label>
+              <textarea id="cAddress" placeholder="Notas sobre este cliente..."></textarea>
             </div>
             <div class="btn-row">
               <button class="btn btn-primary" id="saveClientBtn">Guardar cliente</button>
@@ -123,6 +139,62 @@
       <div class="footer-space"></div>
     </section>
   </main>
+</div>
+
+<!-- Modal de Detalle de Cliente -->
+<div class="modal-overlay" id="clientModal">
+  <div class="modal-card">
+    <button class="modal-close" id="closeModalBtn">&times;</button>
+    <div class="modal-header">
+      <div class="modal-title" id="mName">Nombre del Cliente</div>
+      <div class="modal-subtitle" id="mRfc">RFC: -</div>
+    </div>
+
+    <div class="modal-grid">
+      <div class="m-stats">
+        <div class="m-stat-item">
+          <div class="m-stat-val" id="mTotalTickets">0</div>
+          <div class="m-stat-lab">Tickets</div>
+        </div>
+        <div class="m-stat-item">
+          <div class="m-stat-val" id="mTotalAmount">$0.00</div>
+          <div class="m-stat-lab">Total gastado</div>
+        </div>
+        <div class="m-stat-item">
+          <div class="m-stat-val" id="mAvgAmount">$0.00</div>
+          <div class="m-stat-lab">Promedio</div>
+        </div>
+      </div>
+
+      <div class="m-contact">
+        <div class="field-info"><strong>Teléfono:</strong> <span id="mPhone">-</span></div>
+        <div class="field-info"><strong>Correo:</strong> <span id="mEmail">-</span></div>
+      </div>
+    </div>
+
+    <div class="m-section">
+      <div class="m-sec-title">Notas internas</div>
+      <div class="m-notes" id="mNotes">Sin notas registradas.</div>
+    </div>
+
+    <div class="m-section" style="flex: 1; min-height: 0; display: flex; flex-direction: column;">
+      <div class="m-sec-title">Historial de tickets</div>
+      <div class="m-history-wrap">
+        <table class="m-table">
+          <thead>
+            <tr>
+              <th>Folio</th>
+              <th>Fecha</th>
+              <th style="text-align:right;">Total</th>
+            </tr>
+          </thead>
+          <tbody id="mHistoryBody">
+            <!-- Tickets here -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
 </div>
 
 <div class="toast" id="toast"></div>

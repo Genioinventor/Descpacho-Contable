@@ -3,6 +3,7 @@
 ============================================================ */
 
 let clients = [];
+let tickets = []; // New: To store tickets and calculate stats
 let editingClientId = null;
 let deleteArmedId = null;
 
@@ -25,23 +26,45 @@ async function setStorageItem(key, val) {
   localStorage.setItem(key, val);
 }
 
-async function loadAllClients() {
+async function loadAllData() {
   try {
-    const raw = await getStorageItem('cotizador-clients');
-    clients = raw ? JSON.parse(raw) : [];
-  } catch (e) {
-    clients = [];
-  }
+    const rawC = await getStorageItem('cotizador-clients');
+    clients = rawC ? JSON.parse(rawC) : [];
+  } catch (e) { clients = []; }
+
+  try {
+    const rawT = await getStorageItem('cotizador-tickets');
+    tickets = rawT ? JSON.parse(rawT) : [];
+  } catch (e) { tickets = []; }
 }
 
 async function persistClients() {
   try {
     await setStorageItem('cotizador-clients', JSON.stringify(clients));
+    updateGlobalDashboard();
     return true;
   } catch (e) {
     showToast('Error al guardar datos locales', 'error');
     return false;
   }
+}
+
+function fmt(val) {
+  return `$${Number(val || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
+function updateGlobalDashboard() {
+  const totalClients = clients.length;
+  const totalTickets = tickets.length;
+  const totalRevenue = tickets.reduce((sum, t) => sum + (Number(t.total) || 0), 0);
+
+  const tc = document.getElementById('totalClientsVal');
+  const tt = document.getElementById('totalTicketsVal');
+  const tr = document.getElementById('totalRevenueVal');
+
+  if (tc) tc.textContent = totalClients;
+  if (tt) tt.textContent = totalTickets;
+  if (tr) tr.textContent = fmt(totalRevenue);
 }
 
 /* ============================================================
@@ -101,7 +124,7 @@ async function fetchFirestoreUsers() {
           rfc: d.rfc || '',
           phone: d.telefono || '',
           email: d.email || '',
-          address: d.direccion || '',
+          address: d.direccion || d.notas || '', // Keep compatibility
           fsId: docId
         });
       }
@@ -109,6 +132,7 @@ async function fetchFirestoreUsers() {
 
     renderClientList();
     updateDbStatus();
+    updateGlobalDashboard();
     await persistClients();
   } catch (e) {
     console.warn('fetchFirestoreUsers', e);
@@ -125,7 +149,8 @@ async function saveClientToFirestore(localClient) {
       rfc: (localClient.rfc || '').trim(),
       telefono: (localClient.phone || '').trim(),
       email: (localClient.email || '').trim(),
-      direccion: (localClient.address || '').trim()
+      direccion: (localClient.address || '').trim(),
+      notas: (localClient.address || '').trim() // Sync both for compatibility
     };
     if (localClient.fsId) {
       await firestoreDb.collection('usuarios').doc(localClient.fsId).set(payload, { merge: true });
@@ -194,25 +219,69 @@ function renderClientList() {
     return;
   }
 
-  list.innerHTML = filtered.map(c => `
-    <div class="client-card" data-id="${c.id}">
-      <div>
-        <div class="cc-name">${escapeHtml(c.name)}</div>
-        <div class="cc-detail">
-          ${c.rfc ? 'RFC: ' + escapeHtml(c.rfc) + '<br>' : ''}
-          ${c.phone ? 'Tel: ' + escapeHtml(c.phone) + ' ' : ''}${c.email ? 'Email: ' + escapeHtml(c.email) : ''}
-          ${c.address ? '<br>' + escapeHtml(c.address) : ''}
+  list.innerHTML = filtered.map(c => {
+    const clientTickets = tickets.filter(t => (t.client || '').toLowerCase() === (c.name || '').toLowerCase() || (t.rfc || '').toLowerCase() === (c.rfc || '').toLowerCase());
+    const ticketCount = clientTickets.length;
+
+    return `
+      <div class="client-card" data-id="${c.id}">
+        <div style="flex: 1;">
+          <div class="cc-name">${escapeHtml(c.name)}</div>
+          <div class="cc-detail">
+            ${c.rfc ? 'RFC: ' + escapeHtml(c.rfc) + '<br>' : ''}
+            ${ticketCount > 0 ? `<span class="badge" style="background:var(--violet-deep); color:#fff; padding:2px 8px; border-radius:10px; font-size:10px; margin-top:4px; display:inline-block;">${ticketCount} tickets</span>` : ''}
+          </div>
+        </div>
+        <div class="cc-actions">
+          <button class="btn btn-outline btn-sm" data-view="${c.id}">Detalles</button>
+          <button class="btn btn-outline btn-sm" data-edit="${c.id}">Editar</button>
+          <button class="btn btn-danger btn-sm" data-del="${c.id}">×</button>
         </div>
       </div>
-      <div class="cc-actions">
-        <button class="btn btn-outline btn-sm" data-edit="${c.id}">Editar</button>
-        <button class="btn btn-danger btn-sm" data-del="${c.id}">Eliminar</button>
-      </div>
-    </div>
-  `).join('');
+    `;
+  }).join('');
 
+  list.querySelectorAll('[data-view]').forEach(btn => btn.addEventListener('click', () => showClientDetails(btn.dataset.view)));
   list.querySelectorAll('[data-edit]').forEach(btn => btn.addEventListener('click', () => startEditClient(btn.dataset.edit)));
   list.querySelectorAll('[data-del]').forEach(btn => btn.addEventListener('click', () => handleDeleteClient(btn.dataset.del, btn)));
+}
+
+function showClientDetails(id) {
+  const c = clients.find(cl => String(cl.id) === String(id));
+  if (!c) return;
+
+  const clientTickets = tickets.filter(t =>
+    (t.client || '').toLowerCase() === (c.name || '').toLowerCase() ||
+    (t.rfc || '').toLowerCase() === (c.rfc || '').toLowerCase()
+  );
+
+  const totalAmount = clientTickets.reduce((sum, t) => sum + (Number(t.total) || 0), 0);
+  const avgAmount = clientTickets.length ? totalAmount / clientTickets.length : 0;
+
+  document.getElementById('mName').textContent = c.name || 'Sin nombre';
+  document.getElementById('mRfc').textContent = c.rfc ? 'RFC: ' + c.rfc : 'Sin RFC';
+  document.getElementById('mPhone').textContent = c.phone || 'No registrado';
+  document.getElementById('mEmail').textContent = c.email || 'No registrado';
+  document.getElementById('mNotes').textContent = c.address || 'Sin notas internas.';
+
+  document.getElementById('mTotalTickets').textContent = clientTickets.length;
+  document.getElementById('mTotalAmount').textContent = fmt(totalAmount);
+  document.getElementById('mAvgAmount').textContent = fmt(avgAmount);
+
+  const historyBody = document.getElementById('mHistoryBody');
+  if (clientTickets.length === 0) {
+    historyBody.innerHTML = '<tr><td colspan="3" style="text-align:center; padding:20px; color:var(--text-faint);">No hay tickets registrados.</td></tr>';
+  } else {
+    historyBody.innerHTML = clientTickets.map(t => `
+      <tr>
+        <td style="font-family:var(--font-mono); font-weight:700;">${String(t.folio || '0').padStart(6, '0')}</td>
+        <td>${new Date(t.date || Date.now()).toLocaleDateString()}</td>
+        <td style="text-align:right; font-weight:700; color:var(--blue);">${fmt(t.total)}</td>
+      </tr>
+    `).join('');
+  }
+
+  document.getElementById('clientModal').classList.add('open');
 }
 
 function startEditClient(id) {
@@ -244,11 +313,11 @@ function resetClientForm() {
 async function handleDeleteClient(id, btnEl) {
   if (deleteArmedId !== id) {
     deleteArmedId = id;
-    btnEl.textContent = '¿Confirmar?';
+    btnEl.textContent = '?';
     setTimeout(() => {
       if (deleteArmedId === id) {
         deleteArmedId = null;
-        btnEl.textContent = 'Eliminar';
+        btnEl.textContent = '×';
       }
     }, 3000);
     return;
@@ -267,9 +336,10 @@ async function handleDeleteClient(id, btnEl) {
 
 document.addEventListener('DOMContentLoaded', async () => {
   const overlay = document.getElementById('loadingOverlay');
-  await loadAllClients();
+  await loadAllData();
   renderClientList();
   updateDbStatus();
+  updateGlobalDashboard();
 
   initFirebase();
   if (firestoreDb) {
@@ -277,6 +347,14 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   if (overlay) overlay.style.display = 'none';
+
+  document.getElementById('closeModalBtn')?.addEventListener('click', () => {
+    document.getElementById('clientModal').classList.remove('open');
+  });
+
+  document.getElementById('clientModal')?.addEventListener('click', (e) => {
+    if (e.target.id === 'clientModal') document.getElementById('clientModal').classList.remove('open');
+  });
 
   document.getElementById('saveClientBtn').addEventListener('click', async () => {
     const name = document.getElementById('cName').value.trim();
@@ -433,9 +511,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     const btn = document.getElementById('refreshBtn');
     if (btn) btn.classList.add('spinning');
     try {
-      await loadAllClients();
+      await loadAllData();
       initFirebase();
       if (firestoreDb) await fetchFirestoreUsers();
+      updateGlobalDashboard();
       showToast('Datos de clientes sincronizados', 'success');
     } catch(e) {
       showToast('Modo sin conexión activo', 'warn');
