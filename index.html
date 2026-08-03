@@ -955,8 +955,8 @@ function buildTicketCardHtml(h, showDeleteLocal = false) {
     const itemsHtml = (h.items || []).map(it => `\n    <tr>
         <td>${escapeHtml(it.name || 'Producto')}</td>
         <td style="text-align:center;">${it.qty || 1}</td>
-        <td style="text-align:right;">${fmt((Number(it.price)||0).toFixed(2)}</td>
-        <td style="text-align:right; font-weight:700;">${fmt(((it.qty||1)*(it.price||0)).toFixed(2}</td>
+        <td style="text-align:right;">${fmt((Number(it.price)||0).toFixed(2))}</td>
+        <td style="text-align:right; font-weight:700;">${fmt(((it.qty||1)*(it.price||0)).toFixed(2))}</td>
     </tr>
     `).join('');
 
