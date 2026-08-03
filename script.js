@@ -212,6 +212,73 @@ const firebaseConfig = {
 let firestoreDb = null;
 let firestoreConnected = false;
 
+function isOfflineMode() {
+  return !navigator.onLine;
+}
+
+async function showOfflineMessage() {
+  const banner = document.getElementById('offlineBanner');
+  if (banner) {
+    banner.classList.add('show');
+    showToast('Modo sin conexión activo. Trabajando en modo local.', 'warn');
+  }
+}
+
+function initializeOfflineSupport() {
+  if (isOfflineMode()) {
+    showOfflineMessage();
+  }
+  
+  window.addEventListener('offline', () => {
+    showOfflineMessage();
+    showToast('Has perdido conexión. Trabajando en modo local.', 'warn');
+  });
+  
+  window.addEventListener('online', () => {
+    const banner = document.getElementById('offlineBanner');
+    if (banner) {
+      banner.classList.remove('show');
+    }
+    showToast('Conexión restaurada. Sincronizando...', 'success');
+    syncPendingTickets();
+  });
+}
+
+document.getElementById('waBtn')?.addEventListener('click', async (e) => {
+  const btn = e.currentTarget;
+  setBtnLoading(btn, 'Generando mensaje...');
+  try {
+    const t = computeTotals();
+    const brand = 'Alvarez & Nuñez';
+    const client = document.getElementById('clientName').value;
+    let text = `*${brand}*\\n`;
+    if(client) text += `${I18N.client}: ${client}\\n`;
+    text += `\\n`;
+    items.forEach(it=> text += `${it.name||'-'} x${it.qty} — ${fmt(it.qty*it.price)}\\n`);
+    text += `\\n${I18N.lblTotal}: ${fmt(t.total)}`;
+
+    if(_uploadedCanvas && navigator.share && navigator.canShare){
+      _uploadedCanvas.toBlob(async blob=>{
+        const file = new File([blob], 'ticket.png', { type:'image/png' });
+        if(navigator.canShare({ files:[file] })){
+          try{
+            await navigator.share({ files:[file], text });
+            return;
+          }catch(err){ /* fallback to link */ }
+        }
+        window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+      }, 'image/png');
+    } else {
+      window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+    }
+  } catch(err) {
+    console.error(err);
+    showToast('Error al generar mensaje para WhatsApp', 'error');
+  } finally {
+    restoreBtn(btn);
+  }
+});
+
 function initFirebase(){
   try{
     if(typeof firebase !== 'undefined' && !firebase.apps.length){
@@ -1075,6 +1142,49 @@ window.addEventListener('online', () => {
   syncPendingTickets();
 });
 
+// Funciones offline - WhatsApp y descarga cuando está offline
+window.addEventListener('DOMContentLoaded', () => {
+  const waBtn = document.getElementById('waBtn');
+  if (waBtn) {
+    // Agregar evento de clic que funciona offline
+    waBtn.addEventListener('click', async () => {
+      const t = computeTotals();
+      const brand = 'Alvarez & Nuñez';
+      const client = document.getElementById('clientName').value;
+      let text = `*${brand}*\\n`;
+      if(client) text += `${I18N.client}: ${client}\\n`;
+      text += `\\n`;
+      items.forEach(it=> text += `${it.name||'-'} x${it.qty} — ${fmt(it.qty*it.price)}\\n`);
+      text += `\\n${I18N.lblTotal}: ${fmt(t.total)}`;
+
+      if(_uploadedCanvas && navigator.share && navigator.canShare){
+        _uploadedCanvas.toBlob(async blob=>{
+          const file = new File([blob], 'ticket.png', { type:'image/png' });
+          if(navigator.canShare({ files:[file] })){
+            try{
+              await navigator.share({ files:[file], text });
+              return;
+            }catch(err){ }
+          }
+          window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+        }, 'image/png');
+      } else {
+        // Si hay un canvas guardado, usarlo; si no, intentar captura
+        if(_uploadedCanvas) {
+          window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+        } else {
+          try {
+            const canvas = await captureSheet();
+            window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+          } catch(e) {
+            showToast('Error al generar imagen para WhatsApp', 'error');
+          }
+        }
+      }
+    });
+  }
+});
+
 async function doUpload(){
   if(items.length===0){ showToast(I18N.needItems,'error'); return; }
   const btn = document.getElementById('uploadBtn');
@@ -1259,11 +1369,11 @@ document.getElementById('waBtn')?.addEventListener('click', async ()=>{
   const t = computeTotals();
   const brand = 'Alvarez & Nuñez';
   const client = document.getElementById('clientName').value;
-  let text = `*${brand}*\n`;
-  if(client) text += `${I18N.client}: ${client}\n`;
-  text += `\n`;
-  items.forEach(it=> text += `${it.name||'-'} x${it.qty} — ${fmt(it.qty*it.price)}\n`);
-  text += `\n${I18N.lblTotal}: ${fmt(t.total)}`;
+  let text = `*${brand}*\\n`;
+  if(client) text += `${I18N.client}: ${client}\\n`;
+  text += `\\n`;
+  items.forEach(it=> text += `${it.name||'-'} x${it.qty} — ${fmt(it.qty*it.price)}\\n`);
+  text += `\\n${I18N.lblTotal}: ${fmt(t.total)}`;
 
   if(_uploadedCanvas && navigator.share && navigator.canShare){
     _uploadedCanvas.toBlob(async blob=>{
@@ -1277,6 +1387,7 @@ document.getElementById('waBtn')?.addEventListener('click', async ()=>{
       window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
     }, 'image/png');
   } else {
+    // Funciona offline sin necesidad de canvas
     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
   }
 });
@@ -1326,6 +1437,127 @@ function setupMobileUX(){
     else { if(layout.firstChild !== left) layout.insertBefore(left,right); }
   }
   reorder(); window.addEventListener('resize', reorder);
+}
+
+function initializeApp() {
+  // Initialize offline support
+  initializeOfflineSupport();
+  
+  // Show offline message if currently offline
+  if (isOfflineMode()) {
+    showOfflineMessage();
+  }
+
+  document.getElementById('waBtn')?.addEventListener('click', async (e) => {
+    const btn = e.currentTarget;
+    setBtnLoading(btn, 'Generando mensaje...');
+    try {
+      const t = computeTotals();
+      const brand = 'Alvarez & Nuñez';
+      const client = document.getElementById('clientName').value;
+      let text = `*${brand}*\n`;
+      if(client) text += `${I18N.client}: ${client}\n`;
+      text += `\n`;
+      items.forEach(it=> text += `${it.name||'-'} x${it.qty} — ${fmt(it.qty*it.price)}\n`);
+      text += `\n${I18N.lblTotal}: ${fmt(t.total)}`;
+
+      if(_uploadedCanvas && navigator.share && navigator.canShare){
+        _uploadedCanvas.toBlob(async blob=>{
+          const file = new File([blob], 'ticket.png', { type:'image/png' });
+          if(navigator.canShare({ files:[file] })){
+            try{
+              await navigator.share({ files:[file], text });
+              return;
+            }catch(err){ /* fallback to link */ }
+          }
+          window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+        }, 'image/png');
+      } else {
+        window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+      }
+    } catch(err) {
+      console.error(err);
+      showToast('Error al generar mensaje para WhatsApp', 'error');
+    } finally {
+      restoreBtn(btn);
+    }
+  });
+
+  document.getElementById('pdfBtn')?.addEventListener('click', async (e) => {
+    const btn = e.currentTarget;
+    setBtnLoading(btn, 'Generando PDF...');
+    try {
+      const canvas = _uploadedCanvas || await captureSheet();
+      const folio  = _uploadedFolio  || meta.nextFolio;
+      const imgData = canvas.toDataURL('image/png');
+      if(!window.jspdf) throw new Error('jspdf-not-loaded');
+      const { jsPDF } = window.jspdf;
+      const wPt = canvas.width / 2, hPt = canvas.height / 2;
+      const pdf = new jsPDF({ unit:'pt', format:[wPt, hPt] });
+      pdf.addImage(imgData, 'PNG', 0, 0, wPt, hPt);
+      pdf.save(`documento-${pad6(folio)}.pdf`);
+      showToast('PDF descargado','success');
+    } catch(err) {
+      console.error(err);
+      showToast(I18N.errorExport,'error');
+    } finally {
+      restoreBtn(btn);
+    }
+  });
+
+  document.getElementById('pngBtn')?.addEventListener('click', async (e) => {
+    const btn = e.currentTarget;
+    setBtnLoading(btn, 'Generando PNG...');
+    try {
+      const canvas = _uploadedCanvas || await captureSheet();
+      const folio  = _uploadedFolio  || meta.nextFolio;
+      const link = document.createElement('a');
+      link.download = `documento-${pad6(folio)}.png`;
+      link.href = canvas.toDataURL('image/png');
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      showToast('PNG descargado','success');
+    } catch(err) {
+      console.error(err);
+      showToast(I18N.errorExport,'error');
+    } finally {
+      restoreBtn(btn);
+    }
+  });
+
+  document.getElementById('copyImgBtn')?.addEventListener('click', async (e) => {
+    const btn = e.currentTarget;
+    setBtnLoading(btn, 'Copiando imagen...');
+    try {
+      const canvas = _uploadedCanvas || await captureSheet();
+      canvas.toBlob(async (blob) => {
+        if(!blob){
+          restoreBtn(btn);
+          showToast('Error al generar la imagen', 'error');
+          return;
+        }
+        try {
+          if(navigator.clipboard && navigator.clipboard.write){
+            const item = new ClipboardItem({ 'image/png': blob });
+            await navigator.clipboard.write([item]);
+            showToast('Imagen copiada al portapapeles', 'success');
+          } else {
+            showToast('Tu navegador no soporta copiar imágenes al portapapeles', 'error');
+          }
+        } catch(clipErr) {
+          console.error(clipErr);
+          showToast('No se pudo copiar la imagen al portapapeles', 'error');
+        } finally {
+          restoreBtn(btn);
+        }
+      }, 'image/png');
+    } catch(err) {
+      console.error(err);
+      showToast(I18N.errorExport,'error');
+      restoreBtn(btn);
+    }
+  });
 }
 
 /* ============================================================
