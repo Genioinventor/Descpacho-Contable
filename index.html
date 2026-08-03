@@ -413,6 +413,21 @@ function pad6(num) { return String(num).padStart(6, '0'); }
 function fmt(val) { return `$${Number(val || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`; }
 function escapeHtml(s) { return (s || '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
 
+function updateDbStatus(){
+  const el = document.getElementById('dbStatus');
+  const cnt = document.getElementById('clientCount');
+  if(el) el.textContent = firestoreConnected ? `Base de datos: Conectada` : 'Base de datos: Offline';
+  if(cnt) cnt.textContent = `Clientes: ${clients.length}`;
+}
+
+function renderClientSelect(){
+  const input = document.getElementById('clientSearchInput');
+  const dropdown = document.getElementById('clientDropdown');
+  if(dropdown && dropdown.classList.contains('open') && input){
+    renderClientDropdown(input.value);
+  }
+}
+
 // Number formatting utilities (Spanish)
 function Unidades(num) {
     switch(num) {
