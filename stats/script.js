@@ -191,4 +191,20 @@ window.addEventListener('DOMContentLoaded', async () => {
       if (btn) setTimeout(() => btn.classList.remove('spinning'), 600);
     }
   });
+
+  let logoClicks = 0;
+  let logoClickTimer = null;
+  const sidebarLogo = document.getElementById('sidebarLogo');
+  if (sidebarLogo) {
+    sidebarLogo.addEventListener('click', () => {
+      if (logoClickTimer) clearTimeout(logoClickTimer);
+      logoClicks++;
+      logoClickTimer = setTimeout(() => { logoClicks = 0; }, 3000);
+      if (logoClicks >= 3) {
+        logoClicks = 0;
+        clearTimeout(logoClickTimer);
+        document.querySelectorAll('.hidden-earnings').forEach(el => el.classList.remove('hidden-earnings'));
+      }
+    });
+  }
 });

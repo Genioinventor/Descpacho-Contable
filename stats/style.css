@@ -81,6 +81,8 @@ body {
 @keyframes logoFloat { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
 @keyframes spin { to { transform: rotate(360deg); } }
 
+.hidden-earnings { display: none !important; }
+
 @media (max-width: 880px) {
   .app-shell { flex-direction: column; }
   .sidebar { width: 100%; height: auto; position: sticky; top: 0; z-index: 60; flex-direction: row; align-items: center; padding: 12px 14px; gap: 12px; overflow-x: auto; backdrop-filter: blur(16px) saturate(1.4); background: rgba(20,22,28,.86); box-shadow: 0 6px 24px -10px rgba(0,0,0,.55); border-right: none; border-bottom: 1px solid var(--border); }

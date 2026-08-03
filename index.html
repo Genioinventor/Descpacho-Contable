@@ -1,349 +1,1668 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Despacho A & N | Generar Tickets</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Manrope:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css">
-  
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-  <script src="vendor/qrcode.min.js"></script>
-  <!-- Firebase (compat) for simple Firestore usage -->
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Despacho A & N | Generar Tickets</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Manrope:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="vendor/qrcode.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
 <div class="loading-overlay" id="loadingOverlay">
-  <img class="splash-logo" src="icono.png" alt="Despacho A&amp;N">
-  <div class="splash-texts">
-    <p class="splash-title">Despacho A &amp; N</p>
-    <p class="splash-sub">Cargando datos&hellip;</p>
-  </div>
-  <div class="big-spinner"></div>
+    <img class="splash-logo" src="icono.png" alt="Despacho A & N">
+    <div class="splash-texts">
+        <p class="splash-title">Despacho A & N</p>
+        <p class="splash-sub">Cargando sistema...</p>
+    </div>
+    <div class="big-spinner"></div>
 </div>
 
 <div class="app-shell">
-  <!-- ================= SIDEBAR ================= -->
-  <aside class="sidebar">
-    <div class="app-header">
-      <img id="sidebarLogo" src="icono.png" alt="logo">
-      <div>
-        <div class="app-sub">Despacho A &amp; N Panel</div>
-      </div>
-    </div>
-    <nav class="sb-nav" style="display:flex;flex-direction:column;gap:8px;margin-top:8px;">
-      <a class="nav-btn active" href="./index.html"><span class="ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M7 2h6l5 5v11a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span>Generar tickets</span></a>
-      <a class="nav-btn" href="./clientes/index.html"><span class="ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M17 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="9" cy="7" r="4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span>Gestionar clientes</span></a>
-      <a class="nav-btn" href="./stats/index.html"><span class="ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 19h16M7 15V9m5 10V5m5 10v-4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span>Estadísticas</span></a>
-      <a class="nav-btn" href="https://despacho-nunez-alvarez.devcenterx.workers.dev/" target="_blank" rel="noopener noreferrer"><span class="ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10A15.3 15.3 0 0 1 12 2z" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span>Página web</span></a>
-    </nav>
-    <div class="db-info">
-      <div id="dbStatus">Base de datos: Desconocida</div>
-      <div id="clientCount">Clientes: 0</div>
-      <button class="refresh-btn" id="refreshBtn" title="Sincronizar con Firestore">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1 4v6h6M23 20v-6h-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4-4.64 4.36A9 9 0 0 1 3.51 15" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        Recargar datos
-      </button>
-    </div>
-  </aside>
-
-  <!-- ================= MAIN ================= -->
-  <main class="main">
-
-    <!-- ============ VIEW: GENERATE ============ -->
-    <section class="view active" id="view-generate">
-      <div class="page-head">
-        <h2>Generar tickets</h2>
-        <p>Arma tu cotización o recibo y descárgalo como una hoja profesional.</p>
-      </div>
-
-      <div class="layout">
-        <!-- LEFT: FORM -->
-        <div>
-          <!-- Inputs ocultos para compatibilidad con la generación de ticket -->
-          <input type="hidden" id="docDate">
-          <input type="hidden" id="docTime">
-
-          <div class="card">
-            <div class="section-title"><span class="num">1</span><span>Cliente</span></div>
-            <div class="field client-search-field">
-              <label>Buscar cliente guardado</label>
-              <div class="client-search-box">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="client-search-ic"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><line x1="21" y1="21" x2="16.65" y2="16.65" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-                <input type="text" id="clientSearchInput" placeholder="Escribe un nombre o RFC…" autocomplete="off">
-                <button type="button" id="clientSearchClear" class="client-search-clear" title="Limpiar" style="display:none;">
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><line x1="18" y1="6" x2="6" y2="18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="6" y1="6" x2="18" y2="18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-                </button>
-              </div>
-              <div class="client-dropdown" id="clientDropdown"></div>
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+        <div class="app-header">
+            <img id="sidebarLogo" src="icono.png" alt="logo">
+            <div>
+                <div class="app-sub">Despacho A & N Panel</div>
             </div>
-            <div class="row3">
-              <div class="field">
-                <label>Nombre del cliente</label>
-                <input type="text" id="clientName" placeholder="Obligatorio">
-              </div>
-              <div class="field">
-                <label>RFC</label>
-                <input type="text" id="clientRfc" placeholder="Obligatorio">
-              </div>
-              <div class="field">
-                <label>Método de pago</label>
-                <select id="payMethod">
-                  <option selected>Efectivo</option>
-                  <option>Transferencia</option>
-                  <option>Contado</option>
-                  <option>Tarjeta</option>
-                </select>
-              </div>
-            </div>
-            <div class="field" style="margin-top:12px;">
-              <label>Nota (Invisible en imagen)</label>
-              <textarea id="clientNote" placeholder="Texto escondido que no saldrá en el ticket visible..." rows="3" style="width:100%; resize:vertical; padding:10px; border-radius:8px; border:1px solid rgba(124,92,255,.45); background:transparent; color:var(--text); font-family:inherit; outline:none;"></textarea>
-            </div>
-          </div>
-
-          <div class="card">
-            <div class="section-title"><span class="num">2</span><span>Productos</span></div>
-            <table class="items">
-              <thead>
-                <tr>
-                  <th>Producto</th>
-                  <th>Cant.</th>
-                  <th>Precio</th>
-                  <th>Subtotal</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody id="itemsBody"></tbody>
-            </table>
-            <div class="btn-row">
-              <button class="btn btn-outline btn-sm" id="addItemBtn">+ Añadir producto</button>
-              <button class="btn btn-ghost btn-sm" id="copyTotalBtn">Copiar total</button>
-            </div>
-          </div>
-
         </div>
-
-        <!-- RIGHT: PREVIEW -->
-        <div>
-          <div class="card sheet-shell">
-            <!-- Section header styled like reference image -->
-            <div class="preview-section-header">
-              <div class="preview-section-icon">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="12" r="3" stroke="white" stroke-width="1.8"/></svg>
-              </div>
-              <span class="preview-section-title">Vista previa del documento</span>
-            </div>
-
-            <div class="sheet invoice-cfdi" id="sheetEl">
-              <!-- CABECERA: logo izquierda + EXPEDIDO EN derecha -->
-              <div class="cfdi-header" style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:8px; gap:6px;">
-                <!-- Logo del negocio -->
-                <div style="display:flex; align-items:flex-start; gap:6px; flex:1;">
-                  <img id="sheetLogo" src="baner.jpeg" style="max-width:230px; max-height:70px; width:auto; height:auto; object-fit:contain; object-position:left top; display:block;">
-                </div>
-                <!-- EXPEDIDO EN (derecha) -->
-                <div style="text-align:right; font-size:7.5px; color:#333; min-width:140px; line-height:1.6;">
-                  <div style="font-weight:900; font-size:8.5px; color:#000; letter-spacing:.05em; margin-bottom:2px;">EXPEDIDO EN:</div>
-                  Juan Valdivia 47<br>
-                  Colonia: Centro<br>
-                  El Grullo, Jalisco C.P. 48740
-                </div>
-              </div>
-
-              <!-- CLIENTE + COMPROBANTE -->
-              <div style="display:flex; justify-content:space-between; align-items:stretch; margin-bottom:8px; gap:6px;">
-                <div style="flex:1; border:1px solid #000; border-radius:3px; overflow:hidden; font-size:9px; display:flex; flex-direction:column;">
-                  <div style="background:#eaeaea; border-bottom:1px solid #000; text-align:center; font-weight:bold; padding:3px; letter-spacing:.04em;">DATOS DEL CLIENTE</div>
-                  <table style="width:100%; border-collapse:collapse; font-size:9px; flex:1;">
-                    <tr style="border-bottom:1px solid #eee;">
-                      <td style="font-weight:bold; padding:4px 6px; width:1%; white-space:nowrap; color:#111;">Nombre :</td>
-                      <td id="sheetClient" style="padding:4px 6px;">-</td>
-                    </tr>
-                    <tr style="border-bottom:1px solid #eee;">
-                      <td style="font-weight:bold; padding:4px 6px; width:1%; white-space:nowrap; color:#111;">RFC :</td>
-                      <td id="sheetRfc" style="padding:4px 6px;">-</td>
-                    </tr>
-                    <tr>
-                      <td style="font-weight:bold; padding:4px 6px; width:1%; white-space:nowrap; color:#111;">Método de pago :</td>
-                      <td id="sheetPayMethod" style="padding:4px 6px;">Contado</td>
-                    </tr>
-                  </table>
-                </div>
-
-                <div style="width:170px; border:1px solid #000; border-radius:3px; overflow:hidden; font-size:9px; display:flex; flex-direction:column;">
-                  <div style="background:#eaeaea; border-bottom:1px solid #000; text-align:center; font-weight:bold; padding:3px; letter-spacing:.04em;">DATOS DEL COMPROBANTE</div>
-                  <table style="width:100%; border-collapse:collapse; font-size:9px; flex:1;">
-                    <tr style="border-bottom:1px solid #eee;">
-                      <td style="font-weight:bold; padding:4px 6px; width:1%; white-space:nowrap; color:#111;">Folio :</td>
-                      <td id="sheetFolio" style="padding:4px 6px; font-weight:800; font-size:9.5px; color:#111;">-</td>
-                    </tr>
-                    <tr style="border-bottom:1px solid #eee;">
-                      <td style="font-weight:bold; padding:4px 6px; width:1%; white-space:nowrap; color:#111;">Fecha :</td>
-                      <td id="sheetFecha" style="padding:4px 6px; font-weight:600;">-</td>
-                    </tr>
-                    <tr>
-                      <td style="font-weight:bold; padding:4px 6px; width:1%; white-space:nowrap; color:#111;">Hora :</td>
-                      <td id="sheetHora" style="padding:4px 6px; font-weight:600;">-</td>
-                    </tr>
-                  </table>
-                </div>
-              </div>
-
-              <!-- PRODUCTOS -->
-              <div style="border:1px solid #000; border-radius:3px; overflow:hidden; margin-bottom:8px; min-height:220px; display:flex; flex-direction:column; background:#fff;">
-                <table class="cfdi-table" style="width:100%; border-collapse:collapse; font-size:9px; flex:1;">
-                  <thead id="sheetThead">
-                    <tr style="border-bottom:1px solid #000; background:#eaeaea;">
-                      <th style="padding:4px 6px; text-align:left; border-right:1px solid #000; font-weight:bold; letter-spacing:.03em;">Descripción</th>
-                      <th style="padding:4px 6px; text-align:center; border-right:1px solid #000; width:55px; font-weight:bold;">Cant</th>
-                      <th style="padding:4px 6px; text-align:right; width:85px; font-weight:bold;">Precio</th>
-                    </tr>
-                  </thead>
-                  <tbody id="sheetItems"></tbody>
-                </table>
-              </div>
-
-              <!-- TOTALES + IMPORTE CON LETRA -->
-              <div style="display:flex; justify-content:space-between; align-items:stretch; border:1px solid #000; border-radius:3px; overflow:hidden; margin-bottom:8px; font-size:9px;">
-                <div style="flex:1; border-right:1px solid #000; display:flex; flex-direction:column;">
-                  <div style="background:#eaeaea; border-bottom:1px solid #000; text-align:center; font-weight:bold; padding:3px; letter-spacing:.04em;">IMPORTE CON LETRA</div>
-                  <div id="sheetWords" style="padding:5px 6px; font-size:8.5px; font-weight:600;">DOSCIENTOS CINCUENTA PESOS</div>
-                </div>
-                <div style="width:190px; display:flex; flex-direction:column;">
-                  <div style="background:#eaeaea; border-bottom:1px solid #000; text-align:center; font-weight:bold; padding:3px; letter-spacing:.04em;">TOTALES</div>
-                  <div style="flex:1; display:flex; align-items:center; justify-content:space-between; padding:6px 8px;">
-                    <span style="font-weight:800; font-size:10.5px;">TOTAL :</span>
-                    <span style="font-weight:800; font-size:11px;" id="shTotal">$250.00</span>
-                  </div>
-                </div>
-              </div>
-
-              <!-- QR + IDENTIFICADOR -->
-              <div style="display:flex; gap:8px; margin-top:6px; align-items:flex-start;">
-                <div style="flex-shrink:0; border:1px solid #000;">
-                  <div id="qrBox" class="qrbox" style="width:80px; height:80px; box-sizing:border-box; border:1px solid #000; border-radius:3px; background:#fff; padding:3px; display:flex; align-items:center; justify-content:center; overflow:hidden; flex-shrink:0;"></div>
-                </div>
-                <div style="flex:1; word-break:break-all; font-size:7px; color:#333; line-height:1.6;">
-                  <div style="margin-bottom:4px;">
-                    <b>Identificador Digital:</b><br>
-                    <span id="sheetDocId" style="font-family:monospace; font-size:7px; font-weight:700; color:#222;"></span>
-                  </div>
-                  <div style="border-top:1px dashed #bbb; padding-top:5px; font-size:7.5px; color:#444; font-style:italic;">
-                    Documento generado con fines informativos. No constituye un comprobante fiscal digital (CFDI).
-                  </div>
-                  <div style="margin-top:6px; font-weight:900; font-size:8px; letter-spacing:.04em;">GRACIAS POR SU PREFERENCIA</div>
-                  <div style="margin-top:3px; font-size:7.5px; color:#333; line-height:1.5;">
-                    Tel. 3216880149 &nbsp;|&nbsp; Cel. 3211059105 &nbsp;|&nbsp; Correo: despachocontablenunez@gmail.com
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div class="preview-actions">
-              <button class="btn btn-upload wide" id="uploadBtn">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><polyline points="17 8 12 3 7 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><line x1="12" y1="3" x2="12" y2="15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                Subir ticket
-              </button>
-              <p class="upload-hint" id="uploadHint">Sube primero para habilitar las demás opciones</p>
-
-              <button class="btn btn-outline wide" id="localLoadBtn" type="button">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 3v12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M7 10l5 5 5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 19h16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                Cargar Localmente
-              </button>
-              <div class="post-upload-actions" id="localLoadOptions" style="display:none; width:100%; flex-direction:column; gap:8px;">
-                <button class="btn btn-outline wide" id="localOnlyBtn" type="button">
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M8 12h8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
-                  Guardar solo en este dispositivo
-                </button>
-                <button class="btn btn-primary wide" id="localQueueBtn" type="button">
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M17.5 19a4.5 4.5 0 0 0 0-9 6 6 0 0 0-11.6-1.7A4.5 4.5 0 0 0 6.5 19h11z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                  Subir cuando haya internet
-                </button>
-              </div>
-
-              <div class="post-upload-actions" id="postUploadActions" style="display:none; width:100%; display:none; flex-direction:column; gap:8px;">
-                <button class="btn btn-wa wide action-locked" id="waBtn">
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                  Enviar por WhatsApp
-                </button>
-                <button class="btn btn-primary wide action-locked" id="pdfBtn">
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><polyline points="14 2 14 8 20 8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><line x1="12" y1="18" x2="12" y2="12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><line x1="9" y1="15" x2="15" y2="15" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                  Descargar PDF
-                </button>
-                <button class="btn btn-outline wide action-locked" id="pngBtn">
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="3" y="3" width="18" height="18" rx="2" ry="2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><circle cx="8.5" cy="8.5" r="1.5" fill="currentColor"/><polyline points="21 15 16 10 5 21" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                  Descargar imagen (PNG)
-                </button>
-                <button class="btn btn-outline wide action-locked" id="copyImgBtn">
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="9" y="9" width="13" height="13" rx="2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                  Copiar imagen al portapapeles
-                </button>
-                <button class="btn btn-outline wide action-locked" id="reloadPageBtn" onclick="location.reload()" style="border-color:var(--danger); color:var(--danger);">
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M21 2v6h-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M21 13a9 9 0 1 1-9-9 9 9 0 0 1 9 9z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                  Recargar página para nuevo ticket
-                </button>
-              </div>
-            </div>
-            <div class="offline-banner" id="offlineBanner">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1 6s4.5-4 11-4 11 4 11 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M5 10s2.5-2.5 7-2.5S19 10 19 10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M9 14s1-1 3-1 3 1 3 1" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><line x1="1" y1="1" x2="23" y2="23" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
-              Modo sin conexión: El ticket se guardó en este dispositivo y se subirá automáticamente al conectarte.
-            </div>
-            <!-- Mobile fixed actions -->
-            <div class="mobile-actions" id="mobileActions" style="display:none;">
-              <button class="btn btn-upload" id="mobileUpload">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><polyline points="17 8 12 3 7 8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="12" y1="3" x2="12" y2="15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-                Subir
-              </button>
-              <button class="btn btn-outline" id="mobilePdf">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><polyline points="14 2 14 8 20 8" stroke="currentColor" stroke-width="1.8"/></svg>
-                PDF
-              </button>
-              <button class="btn btn-outline" id="mobilePng">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" stroke-width="1.8"/><polyline points="21 15 16 10 5 21" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
-                PNG
-              </button>
-              <button class="btn btn-outline" id="mobileCopy">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><rect x="9" y="9" width="12" height="12" rx="2" stroke="currentColor" stroke-width="1.8"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v1" stroke="currentColor" stroke-width="1.8"/></svg>
-                Copiar
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="single-col">
-        <div class="card">
-          <div class="section-title" style="display:flex; align-items:center; justify-content:space-between;">
-            <div style="display:flex; align-items:center; gap:8px;">
-              <span class="num">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.2"/><path d="M12 7v6l3 2" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-              </span>
-              <span>Historial de tickets</span>
-            </div>
-            <button class="btn btn-outline btn-sm" id="refreshTicketsBtn" type="button" style="padding:4px 10px; font-size:12px; height:auto; gap:6px;">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M2.5 22v-6h6"/><path d="M2 11.5a10 10 0 0 1 18.8-4.3L21.5 8M22 12.5a10 10 0 0 1-18.8 4.2L2.5 16"/></svg>
-              Sincronizar
+        <nav class="sb-nav" style="display:flex;flex-direction:column;gap:8px;margin-top:8px;">
+            <a class="nav-btn active" href="#" onclick="showView('generate')"><span class="ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M7 2h6l5 5v11a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span>Generar tickets</span></a>
+            <a class="nav-btn" href="#clientes/index.html"><span class="ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M17 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="9" cy="7" r="4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span>Gestionar clientes</span></a>
+            <a class="nav-btn" href="#stats/index.html"><span class="ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 19h16M7 15V9m5 10V5m5 10v-4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span>Estadísticas</span></a>
+            <a class="nav-btn" href="https://despacho-nunez-alvarez.devcenterx.workers.dev/" target="_blank" rel="noopener noreferrer"><span class="ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10A15.3 15.3 0 0 1 12 2z" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span>Página web</span></a>
+        </nav>
+        <div class="db-info">
+            <div id="dbStatus">Base de datos: Desconocida</div>
+            <div id="clientCount">Clientes: 0</div>
+            <button class="refresh-btn" id="refreshBtn" title="Sincronizar con Firestore">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1 4v6h6M23 20v-6h-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4-4.64 4.36A9 9 0 0 1 3.51 15" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                Recargar datos
             </button>
-          </div>
-          <div class="history-list" id="historyList">
-            <p class="empty-hint">Aún no has generado ningún ticket.</p>
-          </div>
         </div>
-      </div>
-      <div class="footer-space"></div>
-    </section>
+    </aside>
 
-  </main>
+    <!-- MAIN -->
+    <main class="main">
+
+        <!-- VIEW: GENERATE -->
+        <section class="view active" id="view-generate">
+            <div class="page-head">
+                <h2>Generar tickets</h2>
+                <p>Arma tu cotización o recibo y descárgalo como una hoja profesional.</p>
+            </div>
+
+            <div class="layout">
+                <!-- LEFT: FORM -->
+                <div>
+                    <!-- Inputs ocultos para compatibilidad -->
+                    <input type="hidden" id="docDate">
+                    <input type="hidden" id="docTime">
+
+                    <div class="card">
+                        <div class="section-title"><span class="num">1</span><span>Cliente</span></div>
+                        <div class="field client-search-field">
+                            <label>Buscar cliente guardado</label>
+                            <div class="client-search-box">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="client-search-ic"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><line x1="21" y1="21" x2="16.65" y2="16.65" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                                <input type="text" id="clientSearchInput" placeholder="Escribe un nombre o RFC…" autocomplete="off">
+                                <button type="button" id="clientSearchClear" class="client-search-clear" title="Limpiar" style="display:none;">
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><line x1="18" y1="6" x2="6" y2="18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="6" y1="6" x2="18" y2="18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                                </button>
+                            </div>
+                            <div class="client-dropdown" id="clientDropdown"></div>
+                        </div>
+                        <div class="row3">
+                            <div class="field">
+                                <label>Nombre del cliente</label>
+                                <input type="text" id="clientName" placeholder="Obligatorio">
+                            </div>
+                            <div class="field">
+                                <label>RFC</label>
+                                <input type="text" id="clientRfc" placeholder="Obligatorio">
+                            </div>
+                            <div class="field">
+                                <label>Método de pago</label>
+                                <select id="payMethod">
+                                    <option selected>Efectivo</option>
+                                    <option>Transferencia</option>
+                                    <option>Contado</option>
+                                    <option>Tarjeta</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="field" style="margin-top:12px;">
+                            <label>Nota (Invisible en imagen)</label>
+                            <textarea id="clientNote" placeholder="Texto escondido que no saldrá en el ticket visible..." rows="3" style="width:100%; resize:vertical; padding:10px; border-radius:8px; border:1px solid rgba(124,92,255,.45); background:transparent; color:var(--text); font-family:inherit; outline:none;"></textarea>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="section-title"><span class="num">2</span><span>Productos</span></div>
+                        <table class="items">
+                            <thead>
+                                <tr>
+                                    <th>Producto</th>
+                                    <th>Cant.</th>
+                                    <th>Precio</th>
+                                    <th>Subtotal</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody id="itemsBody"></tbody>
+                        </table>
+                        <div class="btn-row">
+                            <button class="btn btn-outline btn-sm" id="addItemBtn">+ Añadir producto</button>
+                            <button class="btn btn-ghost btn-sm" id="copyTotalBtn">Copiar total</button>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- RIGHT: PREVIEW -->
+                <div>
+                    <div class="card sheet-shell">
+                        <!-- Section header styled like reference image -->
+                        <div class="preview-section-header">
+                            <div class="preview-section-icon">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="12" r="3" stroke="white" stroke-width="1.8"/></svg>
+                            </div>
+                            <span class="preview-section-title">Vista previa del documento</span>
+                        </div>
+
+                        <div class="sheet invoice-cfdi" id="sheetEl">
+                            <!-- CABECERA: logo izquierda + EXPEDIDO EN derecha -->
+                            <div class="cfdi-header" style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:8px; gap:6px;">
+                                <!-- Logo del negocio -->
+                                <div style="display:flex; align-items:flex-start; gap:6px; flex:1;">
+                                    <img id="sheetLogo" src="baner.jpeg" style="max-width:230px; max-height:70px; width:auto; height:auto; object-fit:contain; object-position:left top; display:block;">
+                                </div>
+                                <!-- EXPEDIDO EN (derecha) -->
+                                <div style="text-align:right; font-size:7.5px; color:#333; min-width:140px; line-height:1.6;">
+                                    <div style="font-weight:900; font-size:8.5px; color:#000; letter-spacing:.05em; margin-bottom:2px;">EXPEDIDO EN:</div>
+                                    Juan Valdivia 47<br>
+                                    Colonia: Centro<br>
+                                    El Grullo, Jalisco C.P. 48740
+                                </div>
+                            </div>
+
+                            <!-- CLIENTE + COMPROBANTE -->
+                            <div style="display:flex; justify-content:space-between; align-items:stretch; margin-bottom:8px; gap:6px;">
+                                <div style="flex:1; border:1px solid #000; border-radius:3px; overflow:hidden; font-size:9px; display:flex; flex-direction:column;">
+                                    <div style="background:#eaeaea; border-bottom:1px solid #000; text-align:center; font-weight:bold; padding:3px; letter-spacing:.04em;">DATOS DEL CLIENTE</div>
+                                    <table style="width:100%; border-collapse:collapse; font-size:9px; flex:1;">
+                                        <tr style="border-bottom:1px solid #eee;">
+                                            <td style="font-weight:bold; padding:4px 6px; width:1%; white-space:nowrap; color:#111;">Nombre :</td>
+                                            <td id="sheetClient" style="padding:4px 6px;">-</td>
+                                        </tr>
+                                        <tr style="border-bottom:1px solid #eee;">
+                                            <td style="font-weight:bold; padding:4px 6px; width:1%; white-space:nowrap; color:#111;">RFC :</td>
+                                            <td id="sheetRfc" style="padding:4px 6px;">-</td>
+                                        </tr>
+                                        <tr>
+                                            <td style="font-weight:bold; padding:4px 6px; width:1%; white-space:nowrap; color:#111;">Método de pago :</td>
+                                            <td id="sheetPayMethod" style="padding:4px 6px;">Contado</td>
+                                        </tr>
+                                    </table>
+                                </div>
+
+                                <div style="width:170px; border:1px solid #000; border-radius:3px; overflow:hidden; font-size:9px; display:flex; flex-direction:column;">
+                                    <div style="background:#eaeaea; border-bottom:1px solid #000; text-align:center; font-weight:bold; padding:3px; letter-spacing:.04em;">DATOS DEL COMPROBANTE</div>
+                                    <table style="width:100%; border-collapse:collapse; font-size:9px; flex:1;">
+                                        <tr style="border-bottom:1px solid #eee;">
+                                            <td style="font-weight:bold; padding:4px 6px; width:1%; white-space:nowrap; color:#111;">Folio :</td>
+                                            <td id="sheetFolio" style="padding:4px 6px; font-weight:800; font-size:9.5px; color:#111;">-</td>
+                                        </tr>
+                                        <tr style="border-bottom:1px solid #eee;">
+                                            <td style="font-weight:bold; padding:4px 6px; width:1%; white-space:nowrap; color:#111;">Fecha :</td>
+                                            <td id="sheetFecha" style="padding:4px 6px; font-weight:600;">-</td>
+                                        </tr>
+                                        <tr>
+                                            <td style="font-weight:bold; padding:4px 6px; width:1%; white-space:nowrap; color:#111;">Hora :</td>
+                                            <td id="sheetHora" style="padding:4px 6px; font-weight:600;">-</td>
+                                        </tr>
+                                    </table>
+                                </div>
+                            </div>
+
+                            <!-- PRODUCTOS -->
+                            <div style="border:1px solid #000; border-radius:3px; overflow:hidden; margin-bottom:8px; min-height:220px; display:flex; flex-direction:column; background:#fff;">
+                                <table class="cfdi-table" style="width:100%; border-collapse:collapse; font-size:9px; flex:1;">
+                                    <thead id="sheetThead">
+                                        <tr style="border-bottom:1px solid #000; background:#eaeaea;">
+                                            <th style="padding:4px 6px; text-align:left; border-right:1px solid #000; font-weight:bold; letter-spacing:.03em;">Descripción</th>
+                                            <th style="padding:4px 6px; text-align:center; border-right:1px solid #000; width:55px; font-weight:bold;">Cant</th>
+                                            <th style="padding:4px 6px; text-align:right; width:85px; font-weight:bold;">Precio</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="sheetItems"></tbody>
+                                </table>
+                            </div>
+
+                            <!-- TOTALES + IMPORTE CON LETRA -->
+                            <div style="display:flex; justify-content:space-between; align-items:stretch; border:1px solid #000; border-radius:3px; overflow:hidden; margin-bottom:8px; font-size:9px;">
+                                <div style="flex:1; border-right:1px solid #000; display:flex; flex-direction:column;">
+                                    <div style="background:#eaeaea; border-bottom:1px solid #000; text-align:center; font-weight:bold; padding:3px; letter-spacing:.04em;">IMPORTE CON LETRA</div>
+                                    <div id="sheetWords" style="padding:5px 6px; font-size:8.5px; font-weight:600;">DOSCIENTOS CINCUENTA PESOS</div>
+                                </div>
+                                <div style="width:190px; display:flex; flex-direction:column;">
+                                    <div style="background:#eaeaea; border-bottom:1px solid #000; text-align:center; font-weight:bold; padding:3px; letter-spacing:.04em;">TOTALES</div>
+                                    <div style="flex:1; display:flex; align-items:center; justify-content:space-between; padding:6px 8px;">
+                                        <span style="font-weight:800; font-size:10.5px;">TOTAL :</span>
+                                        <span style="font-weight:800; font-size:11px;" id="shTotal">$250.00</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- QR + IDENTIFICADOR -->
+                            <div style="display:flex; gap:8px; margin-top:6px; align-items:flex-start;">
+                                <div style="flex-shrink:0; border:1px solid #000;">
+                                    <div id="qrBox" class="qrbox" style="width:80px; height:80px; box-sizing:border-box; border:1px solid #000; border-radius:3px; background:#fff; padding:3px; display:flex; align-items:center; justify-content:center; overflow:hidden; flex-shrink:0;"></div>
+                                </div>
+                                <div style="flex:1; word-break:break-all; font-size:7px; color:#333; line-height:1.6;">
+                                    <div style="margin-bottom:4px;">
+                                        <b>Identificador Digital:</b><br>
+                                        <span id="sheetDocId" style="font-family:monospace; font-size:7px; font-weight:700; color:#222;"></span>
+                                    </div>
+                                    <div style="border-top:1px dashed #bbb; padding-top:5px; font-size:7.5px; color:#444; font-style:italic;">
+                                        Documento generado con fines informativos. No constituye un comprobante fiscal digital (CFDI).
+                                    </div>
+                                    <div style="margin-top:6px; font-weight:900; font-size:8px; letter-spacing:.04em;">GRACIAS POR SU PREFERENCIA</div>
+                                    <div style="margin-top:3px; font-size:7.5px; color:#333; line-height:1.5;">
+                                        Tel. 3216880149 &nbsp;|&nbsp; Cel. 3211059105 &nbsp;|&nbsp; Correo: despachocontablenunez@gmail.com
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="preview-actions">
+                            <button class="btn btn-upload wide" id="uploadBtn">
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><polyline points="17 8 12 3 7 8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="12" y1="3" x2="12" y2="15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                                Subir ticket
+                            </button>
+                            <p class="upload-hint" id="uploadHint">Sube primero para habilitar las demás opciones</p>
+
+                            <button class="btn btn-outline wide" id="localLoadBtn" type="button">
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 3v12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M7 10l5 5 5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M4 19h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                                Cargar Localmente
+                            </button>
+                            <div class="post-upload-actions" id="localLoadOptions" style="display:none; width:100%; flex-direction:column; gap:8px;">
+                                <button class="btn btn-outline wide" id="localOnlyBtn" type="button">
+                                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M8 12h8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+                                    Guardar solo en este dispositivo
+                                </button>
+                                <button class="btn btn-primary wide" id="localQueueBtn" type="button">
+                                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M17.5 19a4.5 4.5 0 0 0 0-9 6 6 0 0 0-11.6-1.7A4.5 4.5 0 0 0 6.5 19h11z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                    Subir cuando haya internet
+                                </button>
+                            </div>
+
+                            <div class="post-upload-actions" id="postUploadActions" style="display:none; width:100%; display:none; flex-direction:column; gap:8px;">
+                                <button class="btn btn-wa wide action-locked" id="waBtn">
+                                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                    Enviar por WhatsApp
+                                </button>
+                                <button class="btn btn-primary wide action-locked" id="pdfBtn">
+                                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><polyline points="14 2 14 8 20 8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><line x1="12" y1="18" x2="12" y2="12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><line x1="9" y1="15" x2="15" y2="15" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+                                    Descargar PDF
+                                </button>
+                                <button class="btn btn-outline wide action-locked" id="pngBtn">
+                                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><circle cx="8.5" cy="8.5" r="1.5" fill="currentColor"/><polyline points="21 15 16 10 5 21" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                    Descargar imagen (PNG)
+                                </button>
+                                <button class="btn btn-outline wide action-locked" id="copyImgBtn">
+                                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="9" y="9" width="13" height="13" rx="2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                    Copiar imagen al portapapeles
+                                </button>
+                                <button class="btn btn-outline wide action-locked" id="reloadPageBtn" onclick="location.reload()" style="border-color:var(--danger); color:var(--danger);">
+                                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M21 2v6h-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M21 13a9 9 0 1 1-9-9 9 9 0 0 1 9 9z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                    Recargar página para nuevo ticket
+                                </button>
+                            </div>
+                            <div class="offline-banner" id="offlineBanner">
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1 6s4.5-4 11-4 11 4 11 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M5 10s2.5-2.5 7-2.5S19 10 19 10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M9 14s1-1 3-1 3 1 3 1" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><line x1="1" y1="1" x2="23" y2="23" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+                                Modo sin conexión: El ticket se guardó en este dispositivo y se subirá automáticamente al conectarte.
+                            </div>
+                            <!-- Mobile fixed actions -->
+                            <div class="mobile-actions" id="mobileActions" style="display:none;">
+                                <button class="btn btn-upload" id="mobileUpload">
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><polyline points="17 8 12 3 7 8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="12" y1="3" x2="12" y2="15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                                    Subir
+                                </button>
+                                <button class="btn btn-outline" id="mobilePdf">
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><polyline points="14 2 14 8 20 8" stroke="currentColor" stroke-width="1.8"/></svg>
+                                    PDF
+                                </button>
+                                <button class="btn btn-outline" id="mobilePng">
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" stroke-width="1.8"/><polyline points="21 15 16 10 5 21" stroke="currentColor" stroke-width="1.8"/></svg>
+                                    PNG
+                                </button>
+                                <button class="btn btn-outline" id="mobileCopy">
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><rect x="9" y="9" width="12" height="12" rx="2" stroke="currentColor" stroke-width="1.8"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v1" stroke="currentColor" stroke-width="1.8"/></svg>
+                                    Copiar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <div class="single-col">
+                <div class="card">
+                    <div class="section-title" style="display:flex; align-items:center; justify-content:space-between;">
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <span class="num">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.2"/><path d="M12 7v6l3 2" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                            </span>
+                            <span>Historial de tickets</span>
+                        </div>
+                        <button class="btn btn-outline btn-sm" id="refreshTicketsBtn" type="button" style="padding:4px 10px; font-size:12px; height:auto; gap:6px;">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M2.5 22v-6h6"/><path d="M2 11.5a10 10 0 0 1 18.8-4.3L21.5 8M22 12.5a10 10 0 0 1-18.8 4.2L2.5 16"/></svg>
+                            Sincronizar
+                        </button>
+                    </div>
+                    <div class="history-list" id="historyList">
+                        <p class="empty-hint">Aún no has generado ningún ticket.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="footer-space"></div>
+        </section>
+
+    </main>
 </div>
 
 <div class="toast" id="toast"></div>
 
-<script src="script.js"></script>
+<script>
+// Script principal integrado para la aplicación web
+
+// Constants and translations
+const I18N = {
+    subtitle: "Despacho A & N Panel",
+    secDocument: "Documento", lblDocType: "Tipo de documento", lblDate: "Fecha", lblMethod: "Método de pago",
+    payCash: "Contado", payTransfer: "Transferencia", payEfectivo: "Efectivo", payCard: "Tarjeta",
+    secClient: "Cliente", lblSavedClient: "Cliente guardado", lblClient: "Nombre del cliente", lblRfc: "RFC / Identificación (opcional)", lblRfcShort: "RFC",
+    secBrand: "Marca", lblBrand: "Nombre de tu marca", lblSubtitle: "Eslogan / giro (opcional)", lblLogo: "Logo (opcional)",
+    secProducts: "Productos", thProduct: "Producto", thQty: "Cant.", thPrice: "Precio", thSub: "Subtotal", btnAddProduct: "+ Añadir producto", btnCopyTotal: "Copiar total",
+    secPreview: "Vista previa del documento", lblSubtotal: "Subtotal", lblTotal: "Total general",
+    lblFolioShort: "Folio", lblWords: "Importe con letra",
+    btnWa: "WhatsApp", btnPdf: "Descargar PDF", btnPng: "Descargar PNG",
+    secHistory: "Historial de tickets", emptyHist: "Aún no has generado ningún ticket.",
+    lblNewClient: "Nuevo cliente", lblEditClient: "Editar cliente", lblPhone: "Teléfono", lblEmail: "Correo", lblAddress: "Dirección",
+    btnSave: "Guardar cliente", btnCancel: "Cancelar edición", secClientList: "Clientes guardados", lblSearch: "Buscar cliente…", emptyClients: "Aún no tienes clientes guardados.",
+    newClientOpt: "+ Nuevo cliente (sin guardar)", discount: "Descuento", copied: "Total copiado al portapapeles", saved: "Ticket guardado",
+    productPlaceholder: "Nombre del producto", generatingPdf: "Generando PDF…", generatingPng: "Generando PNG…",
+    errorExport: "No se pudo generar el archivo. Intenta de nuevo.", client: "Cliente", loadingData: "Cargando tus datos guardados…",
+    needItems: "Agrega al menos un producto antes de continuar.", clientSaved: "Cliente guardado", clientDeleted: "Cliente eliminado",
+    confirmDelete: "¿Eliminar? Toca de nuevo para confirmar", storageError: "No se pudo guardar. Revisa tu conexión e intenta de nuevo.",
+    cero: "CERO", currencyPesos: "PESOS"
+};
+
+let currentLang = 'es';
+let items = [];
+let clients = [];
+let ticketHistory = [];
+let meta = { nextFolio: 1 };
+let editingClientId = null;
+let deleteArmedId = null;
+let activeDraftId = 'draft-' + Date.now();
+let logoDataUrl = 'baner.jpeg';
+let idCounter = 1;
+let _uploadedFolio = null;
+let _uploadedCanvas = null;
+let _isUploaded = false;
+const firebaseConfig = {
+    apiKey: "AIzaSyCJa46EK5NW7dC03Uc058x4A-sa_AWnfyk",
+    authDomain: "contabilidad-an.firebaseapp.com",
+    projectId: "contabilidad-an",
+    storageBucket: "contabilidad-an.firebasestorage.app",
+    messagingSenderId: "773806099214",
+    appId: "1:773806099214:web:2e8b14c4a5e5b2cfb2a55f"
+};
+let firestoreDb = null;
+let firestoreConnected = false;
+
+// UI Helper functions
+function showToast(msg, type = '') {
+    const t = document.getElementById('toast');
+    if (!t) return;
+    t.className = 'toast show' + (type ? ' ' + type : '');
+    const icons = {
+        success: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><path d="M8 12.5l2.5 2.5L16 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+        error: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><path d="M12 7.5v6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="16.5" r="1" fill="currentColor"/></svg>',
+        warn: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 4.5l8.5 14.7H3.5L12 4.5z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M12 10.2v3.8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="16.7" r="1" fill="currentColor"/></svg>',
+        info: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M17.5 19a4.5 4.5 0 0 0 0-9 6 6 0 0 0-11.6-1.7A4.5 4.5 0 0 0 6.5 19h11z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+    };
+    const icon = icons[type] || '';
+    t.innerHTML = icon ? `<span class="toast-icon">${icon}</span><span>${msg}</span>` : msg;
+    clearTimeout(t._t);
+    t._t = setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+function pad6(num) { return String(num).padStart(6, '0'); }
+function fmt(val) { return `$${Number(val || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`; }
+function escapeHtml(s) { return (s || '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+
+// Number formatting utilities (Spanish)
+function Unidades(num) {
+    switch(num) {
+        case 1: return 'UN'; case 2: return 'DOS'; case 3: return 'TRES'; case 4: return 'CUATRO';
+        case 5: return 'CINCO'; case 6: return 'SIETE'; case 7: return 'SIETE'; case 8: return 'OCHO'; case 9: return 'NUEVE';
+    }
+    return '';
+}
+
+function Decenas(num) {
+    let decena = Math.floor(num/10);
+    let unidad = num - (decena * 10);
+    switch(decena) {
+        case 1:
+            switch(unidad) {
+                case 0: return 'DIEZ'; case 1: return 'ONCE'; case 2: return 'DOCE'; case 3: return 'TRECE'; case 4: return 'CATORCE'; case 5: return 'QUINCE';
+                default: return 'DIECI' + Unidades(unidad);
+            }
+        case 2:
+            switch(unidad) {
+                case 0: return 'VEINTE'; case 1: return 'VEINTIÚN'; default: return 'VEINTI' + Unidades(unidad);
+            }
+        case 3: return DecenasY('TREINTA', unidad); case 4: return DecenasY('CUARENTA', unidad);
+        case 5: return DecenasY('CINCUENTA', unidad); case 6: return DecenasY('SESENTA', unidad);
+        case 7: return DecenasY('SETENTA', unidad); case 8: return DecenasY('OCHENTA', unidad);
+        case 9: return DecenasY('NOVENTA', unidad); case 0: return Unidades(unidad);
+    }
+}
+
+function DecenasY(strSin, numUnidades) { return numUnidades > 0 ? strSin + ' Y ' + Unidades(numUnidades) : strSin; }
+
+function Centenas(num) {
+    let centenas = Math.floor(num / 100);
+    let decenas = num - (centenas * 100);
+    switch(centenas) {
+        case 1: return decenas > 0 ? 'CIENTO ' + Decenas(decenas) : 'CIEN';
+        case 2: return 'DOSCIENTOS ' + Decenas(decenas); case 3: return 'TRESCIENTOS ' + Decenas(decenas);
+        case 4: return 'CUATROCIENTOS ' + Decenas(decenas); case 5: return 'QUINIENTOS ' + Decenas(decenas);
+        case 6: return 'SEISCIENTOS ' + Decenas(decenas); case 7: return 'SETECIENTOS ' + Decenas(decenas);
+        case 8: return 'OCHOCIENTOS ' + Decenas(decenas); case 9: return 'NOVECIENTOS ' + Decenas(decenas);
+    }
+    return Decenas(decenas);
+}
+
+function Seccion(num, divisor, strSingular, strPlural) {
+    let cientos = Math.floor(num / divisor);
+    let resto = num - (cientos * divisor);
+    let letras = '';
+    if(cientos > 0) letras = cientos > 1 ? Centenas(cientos) + ' ' + strPlural : strSingular;
+    return letras;
+}
+
+function Millones(num) {
+    let divisor = 1000000;
+    let cientos = Math.floor(num / divisor);
+    let resto = num - (cientos * divisor);
+    let strMillones = Seccion(num, divisor, 'UN MILLÓN', 'MILLONES');
+    let strMiles = Miles(resto);
+    if(strMillones == '') return strMiles;
+    return strMillones + (strMiles ? ' ' + strMiles : '');
+}
+
+function numeroALetrasES(num) {
+    num = Math.floor(Math.max(num, 0));
+    if(num == 0) return I18N.cero;
+    return Millones(num).trim();
+}
+
+function amountInWords(total) {
+    const intPart = Math.floor(total);
+    return `${numeroALetrasES(intPart)} PESOS`;
+}
+
+// Storage utilities
+function generateTicketId() {
+    if(window.crypto && window.crypto.randomUUID) return window.crypto.randomUUID();
+    return 't-' + Date.now() + '-' + Math.floor(Math.random() * 999999);
+}
+
+async function getStorageItem(key) {
+    try {
+        if(window.storage && typeof window.storage.get === 'function') {
+            const res = await window.storage.get(key, false);
+            if(res && res.value !== undefined) return res.value;
+        }
+    } catch(e) {}
+    return localStorage.getItem(key);
+}
+
+async function setStorageItem(key, val) {
+    try {
+        if(window.storage && typeof window.storage.set === 'function') {
+            await window.storage.set(key, val, false);
+        }
+    } catch(e) {}
+    localStorage.setItem(key, val);
+}
+
+function getNextFolioNumber() {
+    if(!ticketHistory || ticketHistory.length === 0) return 1;
+    const maxFolio = ticketHistory.reduce((max, t) => {
+        const num = Number(t.folio);
+        return !isNaN(num) && num > max ? num : max;
+    }, 0);
+    return Math.max(ticketHistory.length + 1, maxFolio + 1);
+}
+
+async function loadAllData() {
+    try {
+        const c = await getStorageItem('cotizador-clients');
+        clients = c ? JSON.parse(c) : [];
+    } catch(e) { clients = []; }
+    try {
+        const t = await getStorageItem('cotizador-tickets');
+        ticketHistory = t ? JSON.parse(t) : [];
+        ticketHistory = ticketHistory.map(ticket => ({ ...ticket, id: ticket.id || generateTicketId() }));
+    } catch(e) { ticketHistory = []; }
+    try {
+        const m = await getStorageItem('cotizador-meta');
+        meta = m ? JSON.parse(m) : { nextFolio: 1 };
+    } catch(e) { meta = { nextFolio: 1 }; }
+    meta.nextFolio = getNextFolioNumber();
+}
+
+async function persistClients() {
+    try { await setStorageItem('cotizador-clients', JSON.stringify(clients)); return true; }
+    catch(e) { showToast(I18N.storageError,'error'); return false; }
+}
+
+async function persistTickets() {
+    try { await setStorageItem('cotizador-tickets', JSON.stringify(ticketHistory)); return true; }
+    catch(e) { showToast(I18N.storageError,'error'); return false; }
+}
+
+async function persistMeta() {
+    try { await setStorageItem('cotizador-meta', JSON.stringify(meta)); return true; }
+    catch(e) { showToast(I18N.storageError,'error'); return false; }
+}
+
+// Offline mode support
+function isOfflineMode() {
+    return !navigator.onLine;
+}
+
+async function showOfflineMessage() {
+    const banner = document.getElementById('offlineBanner');
+    if (banner) {
+        banner.classList.add('show');
+        showToast('Modo sin conexión activo. Trabajando en modo local.', 'warn');
+    }
+}
+
+function initializeOfflineSupport() {
+    if (isOfflineMode()) {
+        showOfflineMessage();
+    }
+    
+    window.addEventListener('offline', () => {
+        showOfflineMessage();
+        showToast('Has perdido conexión. Trabajando en modo local.', 'warn');
+    });
+    
+    window.addEventListener('online', () => {
+        const banner = document.getElementById('offlineBanner');
+        if (banner) {
+            banner.classList.remove('show');
+        }
+        showToast('Conexión restaurada. Sincronizando...', 'success');
+        syncPendingTickets();
+    });
+
+    // WhatsApp button offline support
+    const waBtn = document.getElementById('waBtn');
+    if (waBtn) {
+        waBtn.addEventListener('click', async (e) => {
+            const btn = e.currentTarget;
+            showToast('Generando mensaje para WhatsApp...');
+            
+            const t = computeTotals();
+            const brand = 'Alvarez & Nuñez';
+            const client = document.getElementById('clientName').value;
+            let text = `*${brand}*\n`;
+            if(client) text += `${I18N.client}: ${client}\n`;
+            text += `\n`;
+            items.forEach(it=> text += `${it.name||'-'} x${it.qty} — ${fmt(it.qty*it.price)}\n`);
+            text += `\n${I18N.lblTotal}: ${fmt(t.total)}`;
+
+            window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+        });
+    }
+}
+
+// Firebase initialization
+function initFirebase() {
+    try {
+        if(typeof firebase !== 'undefined' && !firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+            firestoreDb = firebase.firestore();
+            firestoreConnected = true;
+        }
+    } catch(e) { console.warn('Firebase init failed', e); }
+}
+
+async function fetchFirestoreUsers() {
+    if(!firestoreDb) return;
+    try {
+        const snap = await firestoreDb.collection('usuarios').get();
+        firestoreConnected = true;
+
+        const remoteUserMap = new Map();
+        snap.forEach(doc => remoteUserMap.set(doc.id, doc.data()));
+
+        clients = clients.filter(c => {
+            if (c.localOnly) return true;
+            if (c.fsId) return remoteUserMap.has(c.fsId);
+            for (let [docId, d] of remoteUserMap.entries()) {
+                if (c.name === d.nombre && c.rfc === d.rfc) {
+                    c.fsId = docId;
+                    return true;
+                }
+            }
+            return false;
+        });
+
+        remoteUserMap.forEach((d, docId) => {
+            const exists = clients.some(c => c.fsId === docId);
+            if(!exists){
+                clients.push({ 
+                    id: Date.now() + Math.floor(Math.random()*9999), 
+                    name: d.nombre || '', 
+                    rfc: d.rfc || '', 
+                    fsId: docId 
+                });
+            }
+        });
+
+        renderClientSelect();
+        updateDbStatus();
+        await persistClients();
+    } catch(e) { console.warn('fetchFirestoreUsers', e); firestoreConnected = false; updateDbStatus(); }
+}
+
+async function fetchFirestoreTickets() {
+    if(!firestoreDb) return;
+    try {
+        const snap = await firestoreDb.collection('tickets').orderBy('createdAt','desc').get();
+        firestoreConnected = true;
+
+        const remoteDocMap = new Map();
+        snap.forEach(doc => {
+            remoteDocMap.set(doc.id, doc.data());
+        });
+
+        // Remove deleted tickets from local history
+        ticketHistory = ticketHistory.filter(ticket => {
+            if (ticket.localOnly) return true;
+            if (ticket.fsId) {
+                return remoteDocMap.has(ticket.fsId);
+            }
+            for (let [docId, d] of remoteDocMap.entries()) {
+                if (ticket.folio === d.folio && Number(ticket.total) === Number(d.total)) {
+                    ticket.fsId = docId;
+                    return true;
+                }
+            }
+            return false;
+        });
+
+        // Update or add tickets from Firestore
+        remoteDocMap.forEach((d, docId) => {
+            const existing = ticketHistory.find(t => t.fsId === docId || (!t.localOnly && t.folio === d.folio && Number(t.total) === Number(d.total)));
+            if (existing) {
+                existing.fsId = docId;
+                existing.folio = d.folio;
+                existing.brand = d.brand;
+                existing.client = d.client;
+                existing.rfc = d.rfc;
+                existing.total = d.total;
+                existing.date = d.date;
+                existing.items = d.items || existing.items || [];
+            } else {
+                ticketHistory.push({
+                    id: generateTicketId(),
+                    fsId: docId,
+                    folio: d.folio,
+                    brand: d.brand,
+                    client: d.client,
+                    rfc: d.rfc,
+                    total: d.total,
+                    date: d.date,
+                    currencySymbol: '$',
+                    items: d.items || [],
+                    createdAt: d.createdAt ? (d.createdAt.toDate ? d.createdAt.toDate().toISOString() : d.createdAt) : new Date().toISOString()
+                });
+            }
+        });
+
+        ticketHistory.sort((a, b) => (Number(b.folio) || 0) - (Number(a.folio) || 0));
+        meta.nextFolio = getNextFolioNumber();
+        await persistMeta();
+        renderHistory();
+        await persistTickets();
+        updateSheet();
+    } catch(e) { console.warn('Firestore fetch tickets:', e); }
+}
+
+async function saveTicketToFirestore(localTicket) {
+    if(!firestoreDb || !localTicket) return null;
+    try {
+        const payload = {
+            id: localTicket.id,
+            folio: localTicket.folio,
+            brand: localTicket.brand,
+            client: localTicket.client,
+            rfc: localTicket.rfc,
+            total: localTicket.total,
+            date: localTicket.date,
+            items: localTicket.items || [],
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        };
+        const targetId = localTicket.fsId || localTicket.id;
+        await firestoreDb.collection('tickets').doc(targetId).set(payload, { merge: true });
+        localTicket.fsId = targetId;
+        await persistTickets();
+        return targetId;
+    } catch(e) { console.warn('Firestore save ticket failed:', e); return null; }
+}
+
+async function deleteTicketFromFirestore(fsId) {
+    if(!firestoreDb || !fsId) return;
+    try { await firestoreDb.collection('tickets').doc(fsId).delete(); }
+    catch(e) { console.warn('deleteTicketFromFirestore', e); }
+}
+
+// Item management
+function buildItemsTable() {
+    const body = document.getElementById('itemsBody');
+    if(!body) return;
+    body.innerHTML = '';
+    if(items.length === 0){
+        body.innerHTML = `<tr><td colspan="5" class="empty-items">Aún no hay productos. Usa "+ Añadir producto".</td></tr>`;
+        return;
+    }
+    items.forEach(it=>{
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td><input type="text" value="${escapeHtml(it.name)}" data-field="name" placeholder="${I18N.productPlaceholder}"></td>
+            <td class="qty"><input type="number" min="0" step="1" value="${it.qty}" data-field="qty"></td>
+            <td class="price"><input type="number" min="0" step="0.01" value="${it.price}" data-field="price"></td>
+            <td class="row-subtotal">${fmt(it.qty*it.price)}</td>
+            <td><button class="rm" type="button" title="Quitar">×</button></td>`;
+        body.appendChild(tr);
+        tr.querySelectorAll('input').forEach(inp=>{
+            inp.addEventListener('input', ()=>{
+                const field = inp.dataset.field;
+                it[field] = field === 'name' ? inp.value : Number(inp.value);
+                tr.querySelector('.row-subtotal').textContent = fmt(it.qty*it.price);
+                updateSheet();
+            });
+        });
+        tr.querySelector('.rm').addEventListener('click', ()=>{
+            items = items.filter(i=> i.id !== it.id);
+            buildItemsTable();
+            updateSheet();
+        });
+    });
+}
+
+function addItem(name='', qty=1, price=0) {
+    items.push({id: idCounter++, name, qty, price});
+    buildItemsTable();
+    updateSheet();
+}
+
+function computeTotals() {
+    const subtotal = items.reduce((s,it)=> s + (it.qty*it.price), 0);
+    const total = Math.max(0, subtotal);
+    return {subtotal, total};
+}
+
+// QR Generator
+function renderQr() {
+    const box = document.getElementById('qrBox');
+    if(!box) return;
+    box.innerHTML = '';
+    const inner = 72;
+    try {
+        new QRCode(box, {
+            text: 'https://despacho-nunez-alvarez.devcenterx.workers.dev',
+            width: inner,
+            height: inner,
+            colorDark: '#000000',
+            colorLight: '#ffffff',
+            correctLevel: QRCode.CorrectLevel.H
+        });
+        const el = box.querySelector('canvas, img');
+        if(el){
+            el.style.width = inner + 'px';
+            el.style.height = inner + 'px';
+            el.style.display = 'block';
+            el.style.imageRendering = 'pixelated';
+        }
+    } catch(e) {
+        box.innerHTML = '<img src="codigo-qr.png" style="width:100%;height:100%;object-fit:contain;">';
+    }
+}
+
+// Invoice sheet rendering
+function updateSheet() {
+    const t = computeTotals();
+    if(document.getElementById('shTotal')) document.getElementById('shTotal').textContent = fmt(t.total);
+    if(document.getElementById('sheetWords')) document.getElementById('sheetWords').textContent = amountInWords(t.total);
+
+    const clientNameVal = document.getElementById('clientName')?.value || '';
+    const clientRfcVal  = document.getElementById('clientRfc')?.value  || '';
+    if(document.getElementById('sheetClient')) document.getElementById('sheetClient').textContent = clientNameVal || '-';
+    if(document.getElementById('sheetRfc')) document.getElementById('sheetRfc').textContent = clientRfcVal || '-';
+    meta.nextFolio = getNextFolioNumber();
+    const folioVal = pad6(_uploadedFolio || meta.nextFolio);
+    if(document.getElementById('sheetFolio')) document.getElementById('sheetFolio').textContent = folioVal;
+    if(document.getElementById('sheetPayMethod')) document.getElementById('sheetPayMethod').textContent = document.getElementById('payMethod')?.value || 'Contado';
+
+    const docDateVal = document.getElementById('docDate')?.value;
+    let dateStr = '';
+    if (docDateVal) {
+        const parts = docDateVal.split('-');
+        if (parts.length === 3) dateStr = `${parts[2]}/${parts[1]}/${parts[0]}`;
+        else dateStr = docDateVal;
+    } else {
+        dateStr = new Date().toLocaleDateString('es-MX', {day:'2-digit', month:'2-digit', year:'numeric'});
+    }
+
+    const docTimeVal = document.getElementById('docTime')?.value;
+    let timeStr = '';
+    if (docTimeVal) {
+        const parts = docTimeVal.split(':');
+        if (parts.length >= 2) {
+            let h = parseInt(parts[0], 10);
+            const m = parts[1];
+            const ampm = h >= 12 ? 'p.m.' : 'a.m.';
+            h = h % 12;
+            if (h === 0) h = 12;
+            timeStr = `${String(h).padStart(2, '0')}:${m} ${ampm}`;
+        } else {
+            timeStr = docTimeVal;
+        }
+    } else {
+        timeStr = new Date().toLocaleTimeString('es-MX', {hour:'2-digit', minute:'2-digit'});
+    }
+
+    if(document.getElementById('sheetFecha')) document.getElementById('sheetFecha').textContent = dateStr;
+    if(document.getElementById('sheetHora')) document.getElementById('sheetHora').textContent = timeStr;
+
+    const docIdEl = document.getElementById('sheetDocId');
+    if(docIdEl) docIdEl.textContent = activeDraftId || '—';
+
+    const sheetItems = document.getElementById('sheetItems');
+    if(sheetItems){
+        const ROW_H = '26px';
+        const TOTAL_ROWS = 13;
+        const showSubtotal = items.some(it => Number(it.qty) > 1);
+
+        const sheetThead = document.getElementById('sheetThead');
+        if(sheetThead){
+            sheetThead.innerHTML = showSubtotal ? `
+                <tr style="border-bottom:1px solid #000; background:#eaeaea;">
+                    <th style="padding:4px 6px; text-align:left; border-right:1px solid #000; font-weight:bold; letter-spacing:.03em;">Descripción</th>
+                    <th style="padding:4px 6px; text-align:center; border-right:1px solid #000; width:45px; font-weight:bold;">Cant</th>
+                    <th style="padding:4px 6px; text-align:right; border-right:1px solid #000; width:65px; font-weight:bold;">Precio</th>
+                    <th style="padding:4px 6px; text-align:right; width:70px; font-weight:bold;">Subtotal</th>
+                </tr>
+            ` : `
+                <tr style="border-bottom:1px solid #000; background:#eaeaea;">
+                    <th style="padding:4px 6px; text-align:left; border-right:1px solid #000; font-weight:bold; letter-spacing:.03em;">Descripción</th>
+                    <th style="padding:4px 6px; text-align:center; border-right:1px solid #000; width:55px; font-weight:bold;">Cant</th>
+                    <th style="padding:4px 6px; text-align:right; width:85px; font-weight:bold;">Precio</th>
+                </tr>
+            `;
+        }
+
+        const itemRows = items.map(it => {
+            const q = Number(it.qty) || 1;
+            const p = Number(it.price) || 0;
+            const sub = q * p;
+            return showSubtotal ? `
+                <tr style="height:${ROW_H};">
+                    <td style="height:${ROW_H}; padding:0 6px; border-right:1px solid #000; border-bottom:1px dashed #bbb; vertical-align:middle; overflow:hidden; white-space:nowrap; text-overflow:ellipsis;">${escapeHtml(it.name||'-')}</td>
+                    <td style="height:${ROW_H}; padding:0 6px; text-align:center; border-right:1px solid #000; border-bottom:1px dashed #bbb; vertical-align:middle;">${it.qty}</td>
+                    <td style="height:${ROW_H}; padding:0 6px; text-align:right; border-right:1px solid #000; border-bottom:1px dashed #bbb; vertical-align:middle;">${fmt(p)}</td>
+                    <td style="height:${ROW_H}; padding:0 6px; text-align:right; border-bottom:1px dashed #bbb; vertical-align:middle;">${fmt(sub)}</td>
+                </tr>
+            ` : `
+                <tr style="height:${ROW_H};">
+                    <td style="height:${ROW_H}; padding:0 6px; border-right:1px solid #000; border-bottom:1px dashed #bbb; vertical-align:middle; overflow:hidden; white-space:nowrap; text-overflow:ellipsis;">${escapeHtml(it.name||'-')}</td>
+                    <td style="height:${ROW_H}; padding:0 6px; text-align:center; border-right:1px solid #000; border-bottom:1px dashed #bbb; vertical-align:middle;">${it.qty}</td>
+                    <td style="height:${ROW_H}; padding:0 6px; text-align:right; border-bottom:1px dashed #bbb; vertical-align:middle;">${fmt(p)}</td>
+                </tr>
+            `;
+        }).join('');
+
+        const fillerCount = Math.max(0, TOTAL_ROWS - items.length);
+        const fillerRows = Array.from({length: fillerCount}, ()=> showSubtotal ? `
+            <tr style="height:${ROW_H};">
+                <td style="height:${ROW_H}; border-right:1px solid #000; border-bottom:1px dashed #ccc;"></td>
+                <td style="height:${ROW_H}; border-right:1px solid #000; border-bottom:1px dashed #ccc;"></td>
+                <td style="height:${ROW_H}; border-right:1px solid #000; border-bottom:1px dashed #ccc;"></td>
+                <td style="height:${ROW_H}; border-bottom:1px dashed #ccc;"></td>
+            </tr>
+        ` : `
+            <tr style="height:${ROW_H};">
+                <td style="height:${ROW_H}; border-right:1px solid #000; border-bottom:1px dashed #ccc;"></td>
+                <td style="height:${ROW_H}; border-right:1px solid #000; border-bottom:1px dashed #ccc;"></td>
+                <td style="height:${ROW_H}; border-bottom:1px dashed #ccc;"></td>
+            </tr>
+        `).join('');
+
+        sheetItems.innerHTML = itemRows + fillerRows;
+    }
+
+    const logoEl = document.getElementById('sheetLogo');
+    if(logoEl){
+        if(logoDataUrl){
+            logoEl.src = logoDataUrl;
+            logoEl.style.display = 'block';
+        } else {
+            logoEl.style.display = 'none';
+        }
+    }
+
+    renderQr();
+}
+
+// Ticket history rendering
+function toggleHistoryDetails(id) {
+    const el = document.getElementById('details-' + id);
+    if(el) el.classList.toggle('open');
+}
+
+function buildTicketCardHtml(h, showDeleteLocal = false) {
+    const itemsHtml = (h.items || []).map(it => `\n    <tr>
+        <td>${escapeHtml(it.name || 'Producto')}</td>
+        <td style="text-align:center;">${it.qty || 1}</td>
+        <td style="text-align:right;">${fmt((Number(it.price)||0).toFixed(2)}</td>
+        <td style="text-align:right; font-weight:700;">${fmt(((it.qty||1)*(it.price||0)).toFixed(2}</td>
+    </tr>
+    `).join('');
+
+    const isSynced = !!h.fsId;
+    const syncBadge = isSynced
+        ? `<span class="history-badge-sync online"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M17.5 19a4.5 4.5 0 0 0 0-9 6 6 0 0 0-11.6-1.7A4.5 4.5 0 0 0 6.5 19h11z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Nube</span>`
+        : `<span class="history-badge-sync offline"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="4" y="2" width="16" height="20" rx="2" stroke="currentColor" stroke-width="2"/><line x1="4" y1="17" x2="20" y2="17" stroke="currentColor" stroke-width="2"/></svg> Dispositivo</span>`;
+
+    const deleteBtn = showDeleteLocal
+        ? `<button class="btn btn-danger btn-sm ticket-delete" data-id="${h.id}">Eliminar</button>`
+        : `<button class="btn btn-danger btn-sm ticket-delete" data-id="${h.id}">Eliminar ticket</button>`;
+
+    return `\n    <div class="history-item-container" data-id="${h.id}">
+        <div class="history-header" onclick="toggleHistoryDetails('${h.id}')">
+            <div>
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <span class="hi-folio">FOLIO ${pad6(h.folio)}</span>
+                    ${syncBadge}
+                </div>
+                <div class="hi-main">${escapeHtml(h.brand)}${h.client? ' · '+escapeHtml(h.client):''}</div>
+                <div class="hi-sub">${new Date(h.date).toLocaleString()}</div>
+            </div>
+            <div style="display:flex; align-items:center; gap:10px;">
+                <div class="hi-total">${fmt(h.total)}</div>
+                <button class="btn btn-outline btn-sm" type="button"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="margin-right:4px; vertical-align:-2px;"><path d="M1.5 12S5 5 12 5s10.5 7 10.5 7-3.5 7-10.5 7S1.5 12 1.5 12z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.8"/></svg>Ver detalle</button>
+            </div>
+        </div>
+        <div class="history-details" id="details-${h.id}">
+            <div class="readonly-badge">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                Registro guardado &bull; Solo lectura (no modificable)
+            </div>
+            <div style="margin-bottom:8px; display:grid; grid-template-columns:1fr 1fr; gap:8px; font-size:12px; color:var(--text-dim);">
+                <div><strong>Cliente:</strong> ${escapeHtml(h.client || 'Público general')}</div>
+                <div><strong>RFC:</strong> ${escapeHtml(h.rfc || 'Sin RFC')}</div>
+                <div><strong>Marca:</strong> ${escapeHtml(h.brand || '-')}</div>
+                <div><strong>Fecha:</strong> ${new Date(h.date).toLocaleString()}</div>
+            </div>
+            ${h.note ? `<div style="margin-bottom:12px; font-size:12px; color:var(--violet-2); background:rgba(124,92,255,.1); padding:8px; border-radius:6px; border:1px dashed var(--violet-2);"><strong>Nota oculta:</strong><br><span style="white-space:pre-wrap;">${escapeHtml(h.note)}</span></div>` : ''}
+            <table class="history-table">
+                <thead>
+                    <tr>
+                        <th>Producto</th>
+                        <th style="text-align:center;">Cant</th>
+                        <th style="text-align:right;">Precio</th>
+                        <th style="text-align:right;">Subtotal</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${itemsHtml || '<tr><td colspan="4" style="text-align:center; color:var(--text-faint);">Sin desglose de items</td></tr>'}
+                </tbody>
+            </table>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px; padding-top:8px; border-top:1px solid var(--border-soft);">
+                <div style="font-weight:800; font-size:13.5px;">
+                    TOTAL: <span style="color:var(--violet-2);">${fmt(h.total)}</span>
+                </div>
+                <div style="display:flex; gap:8px;">
+                    <button class="btn btn-outline btn-sm" onclick="downloadHistoryPdf('${h.id}')">Descargar PDF</button>
+                    ${deleteBtn}
+                </div>
+            </div>
+        </div>
+    </div>
+    `;
+}
+
+// PDF generation
+window.downloadHistoryPdf = async function(id) {
+    const h = ticketHistory.find(t => t.id === id);
+    if(!h) return;
+    const btn = event.currentTarget;
+    const origText = btn.innerHTML;
+    btn.innerHTML = '<span class="spinner"></span> Generando...';
+    btn.disabled = true;
+
+    const oldItems = [...items];
+    const oldClient = document.getElementById('clientName').value;
+    const oldRfc = document.getElementById('clientRfc').value;
+    const oldNote = document.getElementById('clientNote') ? document.getElementById('clientNote').value : '';
+    const _tempFolio = _uploadedFolio;
+    _uploadedFolio = h.folio;
+
+    items = h.items || [];
+    document.getElementById('clientName').value = h.client || '';
+    document.getElementById('clientRfc').value = h.rfc || '';
+    if(document.getElementById('clientNote')) document.getElementById('clientNote').value = h.note || '';
+
+    updateSheet();
+
+    try {
+        const canvas = await captureSheet();
+        const imgData = canvas.toDataURL('image/png');
+        const wPt = canvas.width * 0.75;
+        const hPt = canvas.height * 0.75;
+        if(!window.jspdf) throw new Error('jspdf-not-loaded');
+        const { jsPDF } = window.jspdf;
+        const pdf = new jsPDF({ unit:'pt', format:[wPt, hPt] });
+        pdf.addImage(imgData, 'PNG', 0, 0, wPt, hPt);
+        pdf.save(`documento-${pad6(h.folio)}.pdf`);
+        showToast('PDF descargado con éxito', 'success');
+    } catch(e) {
+        console.error(e);
+        showToast('Error al generar PDF', 'error');
+    }
+
+    items = oldItems;
+    document.getElementById('clientName').value = oldClient;
+    document.getElementById('clientRfc').value = oldRfc;
+    if(document.getElementById('clientNote')) document.getElementById('clientNote').value = oldNote;
+    _uploadedFolio = _tempFolio;
+    updateSheet();
+    
+    btn.innerHTML = origText;
+    btn.disabled = false;
+}
+
+function renderHistory() {
+    const list = document.getElementById('historyList');
+    if(!list) return;
+
+    // Separate cloud vs local
+    const cloudTickets = ticketHistory.filter(h => !h.localOnly);
+    const localTickets = ticketHistory.filter(h => !!h.localOnly);
+
+    if(ticketHistory.length === 0){
+        list.innerHTML = `<p class="empty-hint">${I18N.emptyHist}</p>`;
+        return;
+    }
+
+    let html = '';
+
+    // Cloud section
+    if(cloudTickets.length === 0){
+        html += `<p class="empty-hint" style="margin-bottom:24px;">No hay tickets en la base de datos todavía.</p>`;
+    } else {
+        html += cloudTickets.map(h => buildTicketCardHtml(h, false)).join('');
+    }
+
+    // Local section
+    html += `\n    <div class="history-local-section" id="localSection">
+        <div class="history-local-header" onclick="toggleLocalSection()">
+            <div class="history-local-title">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><rect x="4" y="2" width="16" height="20" rx="2" stroke="currentColor" stroke-width="2"/><line x1="4" y1="17" x2="20" y2="17" stroke="currentColor" stroke-width="2"/></svg>
+                Tickets locales (dispositivo)
+                <span class="local-count-badge">${localTickets.length}</span>
+            </div>
+            <div style="display:flex; align-items:center; gap:10px;">
+                ${localTickets.length > 0 ? `<button class="btn btn-danger btn-sm" type="button" id="deleteAllLocalBtn" onclick="event.stopPropagation(); deleteAllLocalTickets()">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><polyline points="3 6 5 6 21 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M10 11v6M14 11v6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                    Borrar todo local
+                </button>` : ''}
+                <svg class="local-section-caret" width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+        </div>
+        <div class="history-local-body" id="localBody">
+            ${localTickets.length === 0
+                ? `<p class="empty-hint" style="padding:18px 0 8px;">No hay tickets guardados solo en este dispositivo.</p>`
+                : localTickets.map(h => buildTicketCardHtml(h, true)).join('')
+            }
+        </div>
+    </div>`;
+
+    list.innerHTML = html;
+
+    list.querySelectorAll('.ticket-delete').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            handleDeleteTicket(btn.dataset.id);
+        });
+    });
+}
+
+function toggleLocalSection() {
+    const body = document.getElementById('localBody');
+    const section = document.getElementById('localSection');
+    if(!body || !section) return;
+    section.classList.toggle('collapsed');
+}
+
+async function deleteAllLocalTickets() {
+    const count = ticketHistory.filter(h => !!h.localOnly).length;
+    if(count === 0) return;
+    if(!confirm(`¿Eliminar los ${count} ticket(s) guardados solo en este dispositivo? Esta acción no se puede deshacer.`)) return;
+    ticketHistory = ticketHistory.filter(h => !h.localOnly);
+    meta.nextFolio = getNextFolioNumber();
+    await persistMeta();
+    await persistTickets();
+    renderHistory();
+    updateSheet();
+    showToast(`${count} ticket(s) local(es) eliminados`, 'success');
+}
+
+async function handleDeleteTicket(ticketId) {
+    const index = ticketHistory.findIndex(t=> t.id === ticketId);
+    if(index === -1) return;
+    const ticket = ticketHistory[index];
+    ticketHistory.splice(index, 1);
+    meta.nextFolio = getNextFolioNumber();
+    await persistMeta();
+    await persistTickets();
+    if(ticket.fsId) await deleteTicketFromFirestore(ticket.fsId);
+    renderHistory();
+    updateSheet();
+}
+
+// PDF generation for main actions
+async function captureSheet() {
+    if(typeof html2canvas === 'undefined') throw new Error('html2canvas-not-loaded');
+    if(document.fonts && document.fonts.ready){ try{ await document.fonts.ready; }catch(e){} }
+    const el = document.getElementById('sheetEl');
+    return await html2canvas(el, { backgroundColor:'#ffffff', scale:2, useCORS:true, allowTaint:true, logging:false });
+}
+
+function setBtnLoading(btn, text) {
+    btn.dataset.originalText = btn.dataset.originalText || btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = `<span class="spinner"></span> ${text}`;
+}
+
+function restoreBtn(btn) {
+    btn.disabled = false;
+    if(btn.dataset.originalText) btn.innerHTML = btn.dataset.originalText;
+}
+
+// Ticket saving and upload
+async function saveTicketRecord(opts) {
+    const options = opts || {};
+    const localOnly = !!options.localOnly;
+    if(items.length === 0){
+        showToast(I18N.needItems,'error');
+        return null;
+    }
+    const clientNameVal = document.getElementById('clientName').value.trim();
+    if(!clientNameVal){
+        showToast('El nombre del cliente es obligatorio para generar el ticket.', 'error');
+        return null;
+    }
+    const rfcVal = document.getElementById('clientRfc').value.trim();
+    if(!rfcVal){
+        showToast('El RFC es obligatorio para generar el ticket.', 'error');
+        return null;
+    }
+    const t = computeTotals();
+    const folio = getNextFolioNumber();
+    const createdAt = new Date().toISOString();
+    const ticketId = activeDraftId || generateTicketId();
+    
+    const noteEl = document.getElementById('clientNote');
+    const hiddenNote = noteEl ? noteEl.value.trim() : '';
+
+    const ticket = {
+        id: ticketId,
+        folio,
+        brand: 'Alvarez & Nuñez',
+        client: document.getElementById('clientName').value,
+        rfc: rfcVal,
+        note: hiddenNote,
+        total: t.total,
+        date: createdAt,
+        currencySymbol: '$',
+        items: items.map(it=>({ name: it.name, qty: it.qty, price: it.price })),
+        createdAt,
+        localOnly
+    };
+    ticketHistory.unshift(ticket);
+    meta.nextFolio = getNextFolioNumber();
+    await persistMeta();
+    await persistTickets();
+
+    let uploadedCloud = false;
+    if(!localOnly && navigator.onLine && firestoreConnected){
+        try {
+            const fsId = await saveTicketToFirestore(ticket);
+            if(fsId){
+                ticket.fsId = fsId;
+                await persistTickets();
+                uploadedCloud = true;
+            }
+        } catch(e) {
+            console.warn("Firestore offline fallback", e);
+        }
+    }
+
+    activeDraftId = generateTicketId();
+    renderHistory();
+    updateSheet();
+
+    return { folio, uploadedCloud };
+}
+
+async function doUpload() {
+    if(items.length===0){ showToast(I18N.needItems,'error'); return; }
+    const btn = document.getElementById('uploadBtn');
+    setBtnLoading(btn, 'Subiendo…');
+    const banner = document.getElementById('offlineBanner');
+    if(banner) banner.classList.remove('show');
+
+    try{
+        try{ _uploadedCanvas = await captureSheet(); }catch(e){ _uploadedCanvas = null; console.warn('captureSheet falló, se guardará solo el registro:', e); }
+
+        const res = await saveTicketRecord();
+        if(!res){
+            restoreBtn(btn);
+            return;
+        }
+        _uploadedFolio = res.folio;
+        _isUploaded = true;
+        unlockActions();
+
+        if(res.uploadedCloud){
+            showToast('Ticket subido a la base de datos','success');
+        } else {
+            showToast('Guardado en este dispositivo (modo sin conexión)','warn');
+            if(banner) banner.classList.add('show');
+        }
+    }catch(err){
+        console.error(err);
+        showToast(I18N.errorExport,'error');
+    }finally{
+        restoreBtn(btn);
+    }
+}
+
+function lockActions(){
+    const panel = document.getElementById('postUploadActions');
+    if(panel){ panel.style.display = 'none'; panel.classList.remove('visible'); }
+    ['waBtn','pdfBtn','pngBtn','copyImgBtn','reloadPageBtn'].forEach(id=>{
+        const el = document.getElementById(id);
+        if(el) el.classList.add('action-locked');
+    });
+    _uploadedCanvas = null;
+    _uploadedFolio  = null;
+    _isUploaded     = false;
+    const banner = document.getElementById('offlineBanner');
+    if(banner) banner.classList.remove('show');
+    const hint = document.getElementById('uploadHint');
+    if(hint){
+        hint.textContent = 'Sube primero para habilitar las demás opciones';
+        hint.style.color = '';
+    }
+    const upBtn = document.getElementById('uploadBtn');
+    if(upBtn){
+        upBtn.style.display = '';
+        upBtn.classList.remove('uploaded');
+        upBtn.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><polyline points="17 8 12 3 7 8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="12" y1="3" x2="12" y2="15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg> Subir ticket';
+    }
+    const localLoadBtn = document.getElementById('localLoadBtn');
+    if(localLoadBtn) localLoadBtn.style.display = '';
+}
+
+function unlockActions(){
+    const panel = document.getElementById('postUploadActions');
+    if(panel){ panel.style.display = 'flex'; panel.classList.add('visible'); }
+    ['waBtn','pdfBtn','pngBtn','copyImgBtn','reloadPageBtn'].forEach(id=>{
+        const el = document.getElementById(id);
+        if(el) el.classList.remove('action-locked');
+    });
+    const hint = document.getElementById('uploadHint');
+    if(hint){
+        hint.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="#2fd07a" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg> Ticket guardado — ahora puedes descargar o compartir';
+        hint.style.color = 'var(--success)';
+    }
+    const upBtn = document.getElementById('uploadBtn');
+    if(upBtn){
+        upBtn.style.display = 'none';
+    }
+    const localLoadBtn = document.getElementById('localLoadBtn');
+    if(localLoadBtn) localLoadBtn.style.display = 'none';
+    const localLoadOptions = document.getElementById('localLoadOptions');
+    if(localLoadOptions) localLoadOptions.style.display = 'none';
+}
+
+async function syncPendingTickets(){
+    if(!navigator.onLine || !firestoreDb) return;
+    const pending = ticketHistory.filter(t => !t.fsId && !t.localOnly);
+    if(pending.length === 0) return;
+    let count = 0;
+    for(const t of pending){
+        const fsId = await saveTicketToFirestore(t);
+        if(fsId){
+            t.fsId = fsId;
+            count++;
+        }
+    }
+    if(count > 0){
+        await persistTickets();
+        renderHistory();
+        showToast(`${count} ticket(s) sincronizados con la base de datos`, 'success');
+    }
+}
+
+// Action buttons handlers
+function onTicketChanged(){
+    if(_isUploaded) lockActions();
+}
+
+// Local load handlers
+function toggleLocalOptions(){
+    const panel = document.getElementById('localLoadOptions');
+    if(!panel) return;
+    const isVisible = panel.classList.contains('visible');
+    if(isVisible){
+        panel.style.display = 'none';
+        panel.classList.remove('visible');
+    } else {
+        panel.style.display = 'flex';
+        panel.classList.add('visible');
+    }
+}
+
+async function saveLocalOnly(){
+    if(items.length===0){ showToast(I18N.needItems,'error'); return; }
+    const btn = document.getElementById('localOnlyBtn');
+    setBtnLoading(btn, 'Guardando…');
+    try{
+        try{ _uploadedCanvas = await captureSheet(); }catch(e){ _uploadedCanvas = null; console.warn('captureSheet falló, se guardará solo el registro:', e); }
+
+        const res = await saveTicketRecord({ localOnly:true });
+        if(!res) return;
+        _uploadedFolio = res.folio;
+        _isUploaded = true;
+        unlockActions();
+        toggleLocalOptions();
+        showToast('Guardado solo en este dispositivo','warn');
+    }catch(err){
+        console.error(err);
+        showToast(I18N.errorExport,'error');
+    }finally {
+        restoreBtn(btn);
+    }
+}
+
+async function saveQueueForLater(){
+    if(items.length===0){ showToast(I18N.needItems,'error'); return; }
+    const btn = document.getElementById('localQueueBtn');
+    setBtnLoading(btn, 'Guardando…');
+    try{
+        try{ _uploadedCanvas = await captureSheet(); }catch(e){ _uploadedCanvas = null; console.warn('captureSheet falló, se guardará solo el registro:', e); }
+
+        const res = await saveTicketRecord({ localOnly:false });
+        if(!res) return;
+        _uploadedFolio = res.folio;
+        _isUploaded = true;
+        unlockActions();
+        toggleLocalOptions();
+        if(res.uploadedCloud){
+            showToast('Ya había internet, ticket subido a la base de datos','success');
+        } else {
+            showToast('Guardado en este dispositivo, se subirá solo cuando haya internet','warn');
+            const banner = document.getElementById('offlineBanner');
+            if(banner) banner.classList.add('show');
+        }
+    }catch(err){
+        console.error(err);
+        showToast(I18N.errorExport,'error');
+    }finally {
+        restoreBtn(btn);
+    }
+}
+
+// PDF, PNG, Copy image handlers
+function setupMobileUX(){
+    const m = document.getElementById('mobileActions');
+    if(!m) return;
+    function updateVisibility(){ m.style.display = window.innerWidth <= 520 ? 'flex' : 'none'; }
+    updateVisibility(); window.addEventListener('resize', updateVisibility);
+    const mu = document.getElementById('mobileUpload'); if(mu) mu.addEventListener('click', ()=> document.getElementById('uploadBtn').click());
+    const mp = document.getElementById('mobilePdf'); if(mp) mp.addEventListener('click', ()=> document.getElementById('pdfBtn').click());
+    const mg = document.getElementById('mobilePng'); if(mg) mg.addEventListener('click', ()=> document.getElementById('pngBtn').click());
+    const mc = document.getElementById('mobileCopy'); if(mc) mc.addEventListener('click', ()=> document.getElementById('copyImgBtn').click());
+
+    function reorder(){
+        const layout = document.querySelector('.layout');
+        if(!layout || !layout.children || layout.children.length < 2) return;
+        const left = layout.children[0]; const right = layout.children[1];
+        if(window.innerWidth <= 520){ if(layout.firstChild !== right) layout.insertBefore(right,left); }
+        else { if(layout.firstChild !== left) layout.insertBefore(left,right); }
+    }
+    reorder(); window.addEventListener('resize', reorder);
+}
+
+// Collapsible form cards
+function makeCardsCollapsible(){
+    const cards = document.querySelectorAll('.layout > div:first-child .card');
+    cards.forEach(card=>{
+        const title = card.querySelector('.section-title');
+        if(!title) return;
+        if(!card.querySelector('.card-body')){
+            const body = document.createElement('div'); body.className = 'card-body';
+            let node = title.nextSibling;
+            while(node){
+                const next = node.nextSibling;
+                body.appendChild(node);
+                node = next;
+            }
+            card.appendChild(body);
+        }
+        if(!title.querySelector('.caret')){
+            const caret = document.createElement('span'); caret.className = 'caret';
+            caret.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+            title.appendChild(caret);
+        }
+        title.addEventListener('click', ()=>{ card.classList.toggle('collapsed'); });
+    });
+}
+
+// Initialization
+function initializeApp() {
+    // Initialize offline support
+    initializeOfflineSupport();
+    
+    // Show offline message if currently offline
+    if (isOfflineMode()) {
+        showOfflineMessage();
+    }
+
+    // Main action buttons
+    document.getElementById('pdfBtn')?.addEventListener('click', async (e) => {
+        const btn = e.currentTarget;
+        setBtnLoading(btn, 'Generando PDF...');
+        try {
+            const canvas = _uploadedCanvas || await captureSheet();
+            const folio  = _uploadedFolio  || meta.nextFolio;
+            const imgData = canvas.toDataURL('image/png');
+            if(!window.jspdf) throw new Error('jspdf-not-loaded');
+            const { jsPDF } = window.jspdf;
+            const wPt = canvas.width / 2, hPt = canvas.height / 2;
+            const pdf = new jsPDF({ unit:'pt', format:[wPt, hPt] });
+            pdf.addImage(imgData, 'PNG', 0, 0, wPt, hPt);
+            pdf.save(`documento-${pad6(folio)}.pdf`);
+            showToast('PDF descargado','success');
+        } catch(err) {
+            console.error(err);
+            showToast(I18N.errorExport,'error');
+        } finally {
+            restoreBtn(btn);
+        }
+    });
+
+    document.getElementById('pngBtn')?.addEventListener('click', async (e) => {
+        const btn = e.currentTarget;
+        setBtnLoading(btn, 'Generando PNG...');
+        try {
+            const canvas = _uploadedCanvas || await captureSheet();
+            const folio  = _uploadedFolio  || meta.nextFolio;
+            const link = document.createElement('a');
+            link.download = `documento-${pad6(folio)}.png`;
+            link.href = canvas.toDataURL('image/png');
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            showToast('PNG descargado','success');
+        } catch(err) {
+            console.error(err);
+            showToast(I18N.errorExport,'error');
+        } finally {
+            restoreBtn(btn);
+        }
+    });
+
+    document.getElementById('copyImgBtn')?.addEventListener('click', async (e) => {
+        const btn = e.currentTarget;
+        setBtnLoading(btn, 'Copiando imagen...');
+        try {
+            const canvas = _uploadedCanvas || await captureSheet();
+            canvas.toBlob(async (blob) => {
+                if(!blob){
+                    restoreBtn(btn);
+                    showToast('Error al generar la imagen', 'error');
+                    return;
+                }
+                try {
+                    if(navigator.clipboard && navigator.clipboard.write){
+                        const item = new ClipboardItem({ 'image/png': blob });
+                        await navigator.clipboard.write([item]);
+                        showToast('Imagen copiada al portapapeles', 'success');
+                    } else {
+                        showToast('Tu navegador no soporta copiar imágenes al portapapeles', 'error');
+                    }
+                } catch(clipErr) {
+                    console.error(clipErr);
+                    showToast('No se pudo copiar la imagen al portapapeles', 'error');
+                } finally {
+                    restoreBtn(btn);
+                }
+            }, 'image/png');
+        } catch(err) {
+            console.error(err);
+            showToast(I18N.errorExport,'error');
+            restoreBtn(btn);
+        }
+    });
+}
+
+function showView(viewId) {
+    document.querySelectorAll('.view').forEach(view => view.classList.remove('active'));
+    document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
+    document.getElementById(viewId).classList.add('active');
+}
+
+// Start the app
+window.addEventListener('DOMContentLoaded', async () => {
+    // Initialize app with offline support
+    initializeApp();
+    
+    await loadAllData();
+    initFirebase();
+    if(firestoreDb) {
+        await fetchFirestoreUsers();
+        await fetchFirestoreTickets();
+    }
+    await syncPendingTickets();
+    
+    if(document.getElementById('docDate')) document.getElementById('docDate').value = new Date().toISOString().slice(0,10);
+    if(document.getElementById('docTime')){
+        const now = new Date();
+        const hh = String(now.getHours()).padStart(2,'0');
+        const mm = String(now.getMinutes()).padStart(2,'0');
+        document.getElementById('docTime').value = `${hh}:${mm}`;
+    }
+    logoDataUrl = 'baner.jpeg';
+    if (items.length === 0) addItem();
+
+    // Setup all event listeners
+    try{ makeCardsCollapsible(); }catch(e){}
+    try{ setupMobileUX(); }catch(e){}
+
+    // Form field updates
+    ['docType','docDate','docTime','payMethod','clientName','clientRfc','clientNote'].forEach(id=>{
+        const el = document.getElementById(id);
+        if(el){
+            el.addEventListener('input', updateSheet);
+            el.addEventListener('change', updateSheet);
+        }
+    });
+
+    // Button events
+    document.getElementById('uploadBtn')?.addEventListener('click', doUpload);
+    document.getElementById('localLoadBtn')?.addEventListener('click', toggleLocalOptions);
+    document.getElementById('localOnlyBtn')?.addEventListener('click', saveLocalOnly);
+    document.getElementById('localQueueBtn')?.addEventListener('click', saveQueueForLater);
+    document.getElementById('addItemBtn')?.addEventListener('click', () => addItem());
+    document.getElementById('copyTotalBtn')?.addEventListener('click', () => {
+        const t = computeTotals();
+        const text = fmt(t.total);
+        if(navigator.clipboard && navigator.clipboard.writeText){
+            navigator.clipboard.writeText(text).then(() => showToast(I18N.copied, 'success'))
+                .catch(() => showToast(I18N.errorExport, 'error'));
+        }
+    });
+
+    // Client search functionality
+    const clientSearchInputEl = document.getElementById('clientSearchInput');
+    if(clientSearchInputEl){
+        clientSearchInputEl.addEventListener('focus', () => {
+            // Will be handled by script.js
+        });
+        clientSearchInputEl.addEventListener('input', () => {
+            document.getElementById('clientSearchClear').style.display = clientSearchInputEl.value ? 'flex' : 'none';
+            // Will be handled by script.js
+        });
+    }
+
+    document.getElementById('clientSearchClear')?.addEventListener('click', () => {
+        clientSearchInputEl.value = '';
+        document.getElementById('clientSearchClear').style.display = 'none';
+        // Will be handled by script.js
+        clientSearchInputEl.focus();
+    });
+
+    document.getElementById('refreshBtn')?.addEventListener('click', async () => {
+        const btn = document.getElementById('refreshBtn');
+        if(btn) btn.classList.add('spinning');
+        try {
+            await loadAllData();
+            initFirebase();
+            await Promise.all([fetchFirestoreUsers(), fetchFirestoreTickets(), syncPendingTickets()]);
+            showToast('Datos sincronizados con éxito', 'success');
+        } catch(e) {
+            showToast('Modo sin conexión activo', 'warn');
+        } finally {
+            if(btn) setTimeout(() => btn.classList.remove('spinning'), 600);
+        }
+    });
+
+    document.getElementById('refreshTicketsBtn')?.addEventListener('click', async () => {
+        const btn = document.getElementById('refreshTicketsBtn');
+        if(btn) btn.classList.add('spinning');
+        try {
+            initFirebase();
+            await fetchFirestoreTickets();
+            showToast('Historial de tickets sincronizado', 'success');
+        } catch(e) {
+            showToast('Error al sincronizar historial', 'error');
+        } finally {
+            if(btn) setTimeout(() => btn.classList.remove('spinning'), 600);
+        }
+    });
+
+    updateSheet();
+    renderHistory();
+
+    // Hide splash screen
+    const overlay = document.getElementById('loadingOverlay');
+    if(overlay) overlay.style.display = 'none';
+});
+</script>
 </body>
 </html>
