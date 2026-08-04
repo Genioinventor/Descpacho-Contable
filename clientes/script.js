@@ -208,11 +208,18 @@ function showToast(msg, type = '') {
   showToast._t = setTimeout(() => t.classList.remove('show'), 2800);
 }
 
+function normalizeForSearch(s) {
+  return (s || '').toString().toLowerCase().trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+}
+
 function renderClientList() {
   const list = document.getElementById('clientList');
   if (!list) return;
-  const q = (document.getElementById('clientSearch').value || '').toLowerCase();
-  const filtered = clients.filter(c => (c.name || '').toLowerCase().includes(q) || (c.rfc || '').toLowerCase().includes(q));
+  const q = normalizeForSearch(document.getElementById('clientSearch').value || '');
+  const filtered = clients.filter(c =>
+    normalizeForSearch(c.name).includes(q) ||
+    normalizeForSearch(c.rfc).includes(q)
+  );
 
   if (filtered.length === 0) {
     list.innerHTML = `<p class="empty-hint">Aún no tienes clientes guardados.</p>`;

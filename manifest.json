@@ -1,0 +1,21 @@
+{
+  "name": "Despacho A & N - Generador de Tickets",
+  "short_name": "Despacho A&N",
+  "description": "Genera tickets, recibos y cotizaciones profesionales sin conexión",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#0f1116",
+  "theme_color": "#7c5cff",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "./icono.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["business", "productivity", "finance"],
+  "lang": "es",
+  "dir": "ltr"
+}
